@@ -1,4 +1,4 @@
-const VERSION = "1.0.35";
+const VERSION = "1.0.3";
 
 const CACHE = "yarnlog-" + VERSION;
 const FONTS = "yarnlog-fonts";
