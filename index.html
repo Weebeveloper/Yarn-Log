@@ -55,6 +55,48 @@ img,.ball{-webkit-user-drag:none;user-select:none;-webkit-user-select:none;-webk
 .themes button{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid transparent;background:none;color:var(--mute)}
 .themes button[aria-pressed=true]{background:var(--bg);color:var(--acc);border-color:var(--line)}
 .hint-m{display:none}
+svg.ico{color:var(--acc);width:1.3em;height:1.3em;vertical-align:-.3em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nopt .ni{display:inline-flex;width:30px;justify-content:center}
+.nopt .ni svg.ico{width:28px;height:28px}
+.info .star svg.ico{width:22px;height:22px;display:block}
+.ins{flex-wrap:wrap}
+/* building view: icons centred on the line, bigger stuffing icon, clearer hook change */
+svg.ico.big{width:1.9em;height:1.9em}
+.info{align-items:center}
+.info .star{display:flex;align-items:center;justify-content:center;min-width:34px;flex:none;line-height:1}
+.info .star svg.ico{width:26px;height:26px}
+.info .star svg.ico.big{width:42px;height:42px}
+.info .sw{width:14px;height:14px;vertical-align:-2px}
+.info.hook{padding:10px 12px;background:var(--panel);border:1px solid var(--acc);border-left-width:4px;border-radius:12px;color:var(--ink)}
+.info.hook .prev{color:var(--ink);font-size:17px;font-weight:700}
+.info.hook .prev b{color:var(--acc)}
+.info.hook .star svg.ico{width:28px;height:28px}
+/* step rows stay on ONE line (also on phones) */
+.it{flex-wrap:nowrap}
+.it select{flex:0 1 190px;min-width:0}
+.it .sk{flex:none}
+.it .dng{flex:none}
+@media (max-width:760px){
+  .it{gap:4px}
+  .grab{min-width:18px;letter-spacing:-4px}
+  .it input[type=number]{width:46px;padding:6px 3px;flex:none}
+  .it select{flex:1 1 0;padding:6px 2px}
+  .it .sk{flex-direction:column;width:40px;font-size:10px;line-height:1.1;text-align:center;white-space:normal;gap:2px}
+  .it .ghost{padding:4px 6px}
+}
+/* automatic ch 1 / sl rows of joined rounds */
+.auto{display:flex;align-items:center;gap:8px;margin:8px 0;padding:6px 10px;border:1px dashed var(--acc);border-radius:10px;background:var(--bg);font-size:14px;cursor:pointer}
+.auto .ab{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--acc);font-weight:700}
+.auto b{font-family:ui-monospace,Menlo,monospace}
+.auto .ad{margin-left:auto;color:var(--mute);font-size:12px;text-align:right}
+.auto.off{opacity:.55;border-color:var(--line)}
+.auto.off b{text-decoration:line-through}
+/* note chooser */
+dialog.nm{width:min(420px,calc(100vw - 24px));max-width:none;max-height:85vh;overflow-y:auto}
+.nopt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;padding:10px 12px;margin:0 0 8px;border-radius:12px}
+.nopt .ni{font-size:24px;line-height:1.1;flex:none}
+.nopt b{display:block}
+.nopt small{display:block;color:var(--mute);font-size:12.5px;line-height:1.3;margin-top:2px}
 .upd{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);padding:8px 8px 8px 16px;background:var(--panel);color:var(--ink);border:1px solid var(--acc);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);animation:updin .3s ease}
 .upd span{font-weight:700}
 @keyframes updin{from{transform:translate(-50%,-20px);opacity:0}}
@@ -241,9 +283,12 @@ const cur=()=>S.projects.find(p=>p.id===S.sel);
 const fi=it=>it.group?'('+it.group.map(fi).join(', ')+')':`${it.n} ${T[it.t]?T[it.t][1]:it.t}`;
 const cnt=it=>it.skip?0:it.group?it.group.reduce((s,c)=>s+cnt(c),0):INC.has(it.t)?2*it.n:DEC.has(it.t)?-it.n:it.n;
 // derived-value cache, cleared by inval() after any data change
-let PV=null;const TC=new Map();
+let PV=null,TM=null;const TC=new Map();
 const inval=()=>{PV=null;TC.clear()};
-const prevOf=r=>{if(!PV){PV=new Map();for(const p of S.projects){const last={};for(const x of p.rounds)if(!x.step){const k=x.tab||'';PV.set(x,last[k]||null);last[k]=x}}}return PV.get(r)||null};
+// previous round + active technique ('continuous'|'joined'|'rows'|null) of every round, per tab
+const buildMaps=()=>{if(PV)return;PV=new Map();TM=new Map();for(const p of S.projects){const last={},mode={};for(const x of p.rounds){const k=x.tab||'';if(x.step){if(x.type==='note'&&x.kind==='tech')mode[k]=x.mode;continue}PV.set(x,last[k]||null);TM.set(x,mode[k]||null);last[k]=x}}};
+const prevOf=r=>{buildMaps();return PV.get(r)||null};
+const jmode=r=>{buildMaps();return TM.get(r)||null};
 const net=it=>it.skip?0:it.group?(it.group.every(c=>c.skip)?0:it.group.reduce((s,c)=>s+cnt(c),0)-1):(INC.has(it.t)||DEC.has(it.t)||it.t==='ch'||it.t==='ml')?(INC.has(it.t)?it.n:cnt(it)):0;
 const rngs=r=>(r.reps||[]).map(g=>({a:Math.max(1,+g.from||1)-1,b:Math.min(r.items.length,+g.to||0)-1,n:Math.max(1,+g.n||1)})).filter(g=>g.b>=g.a);
 const mult=(rs,i)=>rs.reduce((m,g)=>i>=g.a&&i<=g.b?m*g.n:m,1);
@@ -265,10 +310,10 @@ const autoT=r=>{const t=tot(r);return t?t+'sc':''};
 const totS=r=>r.manual?(r.total?r.total+'sc':''):autoT(r);
 const autoN=r=>{const t=tot(r);return t?String(t):''};
 const col=c=>/^#[0-9a-f]{3,8}$/i.test(c||'')?c:'#999999';
-const stepText=r=>r.type==='color'?'Color change: '+(r.name||r.color):r.type==='hook'?'Hook change: '+(r.size||'?'):r.text||'';
-const stepH=r=>r.type==='color'?`<span class="sw" style="background:${col(r.color)}"></span><b>Color change</b> ${esc(r.name||r.color)}`:r.type==='hook'?`<b>Hook change</b> to ${esc(r.size||'?').replace(/\d+/g,'<b>$&</b>')}`:esc(r.text||'(empty note)');
+const stepText=r=>r.type==='color'?'Color change: '+(r.name||r.color):r.type==='hook'?'Hook change: '+(r.size||'?'):r.kind&&r.kind!=='standard'?stepTitle(r)+(r.text?': '+r.text:''):r.text||'';
+const stepH=r=>r.type==='color'?`<span class="sw" style="background:${col(r.color)}"></span><b>Color change</b> ${esc(r.name||r.color)}`:r.type==='hook'?`<b>Hook change</b> to ${esc(r.size||'?').replace(/\d+/g,'<b>$&</b>')}`:(r.kind&&r.kind!=='standard'?`<b>${esc(stepTitle(r))}</b> `:'')+esc(r.text||'(empty note)');
 const bodyH=r=>r.step?stepH(r):frH(r);
-const fr=r=>{if(r.step)return stepText(r);let s=r.label+' '+fmtItems(r.items,rngs(r),0,r.items.length-1,true);const t=totS(r);if(t)s+=` (${t})`;if(r.note)s+=`, ${r.note}`;return s.trim()};
+const fr=r=>{if(r.step)return stepText(r);const j=jmode(r)==='joined',body=[j&&!r.noPre?'1 '+T.ch[1]:'',fmtItems(r.items,rngs(r),0,r.items.length-1,true),j&&!r.noPost?'1 '+T.sl[1]:''].filter(Boolean).join(', ');let s=r.label+' '+body;const t=totS(r);if(t)s+=` (${t})`;if(r.note)s+=`, ${r.note}`;return s.trim()};
 const frH=r=>fr(r).split(/(\d+)/).map((x,i)=>i%2?`<b>${esc(x)}</b>`:esc(x)).join('');
 const PH='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b58cf0"/><stop offset="1" stop-color="#e0577d"/></linearGradient></defs><rect width="64" height="64" fill="url(#g)"/><circle cx="32" cy="32" r="17" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M18 26c10 6 18 6 28 0M16 34c11 7 21 7 32 0M21 43c8 4 14 4 22 0M27 17c-4 10-4 20 2 30M38 16c4 9 4 20-1 31" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M46 46c5 3 7 7 12 7" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>');
 const allIt=it=>it.group?it.group.flatMap(allIt):[it];
@@ -290,12 +335,12 @@ function itemRow(it,a,lead,inrep){
   return `<div class="it ${it.skip?'skip':''} ${inrep?'inrep':''}" ${a}${a.includes('data-c')?'':' data-top'}>${lead||''}<input type="number" min="1" value="${it.n}" data-f="n" aria-label="Amount"><select data-f="t" aria-label="Stitch type">${OPTH[it.t]||OPTH._}</select><label class="sk"><input type="checkbox" data-f="skip" ${it.skip?'checked':''}>Don't count</label><button class="ghost dng" data-act="${a.includes('data-c')?'delchild':'delitem'}" ${a} aria-label="Remove">&times;</button></div>`;
 }
 const STEPN={color:'Color change',hook:'Hook change',note:'Note'};
-const insBar=at=>`<div class="ins"><button data-act="addstep" data-type="color" data-at="${at}">+ color</button><button data-act="addstep" data-type="hook" data-at="${at}">+ hook</button><button data-act="addstep" data-type="note" data-at="${at}">+ note</button></div>`;
+const insBar=at=>`<div class="ins"><button data-act="addstep" data-type="color" data-at="${at}">+ color</button><button data-act="addstep" data-type="hook" data-at="${at}">+ hook</button><button data-act="notemenu" data-at="${at}">+ note</button><button data-act="techmenu" data-at="${at}">+ technique</button></div>`;
 function stepHTML(r,ri){
   const body=r.type==='color'?`<div class="row"><button type="button" class="sbtn" style="background:${col(r.color)}" data-act="cp" data-r="${ri}" aria-label="Choose color" aria-expanded="${S.cp===r.id}"></button><input style="flex:1" placeholder="Color name (optional)" value="${esc(r.name)}" data-f="name" data-r="${ri}"></div>${S.cp===r.id?cpHTML(r,ri):''}`
    :r.type==='hook'?`<div class="row"><input placeholder="Hook size, e.g. 3.5 mm" value="${esc(r.size)}" data-f="size" data-r="${ri}" style="font-weight:800"></div>`
-   :`<textarea rows="3" placeholder="Explain the next step in more detail..." data-f="text" data-r="${ri}">${esc(r.text)}</textarea>`;
-  return `<div class="round step" data-r="${ri}"><div class="top"><b>${STEPN[r.type]}</b><button class="ghost" data-act="up" data-r="${ri}" aria-label="Move up">&uarr;</button><button class="ghost" data-act="dn" data-r="${ri}" aria-label="Move down">&darr;</button><button class="ghost dng" data-act="delround" data-r="${ri}">Delete</button></div>${body}</div>`;
+   :`${techUI(r,ri)}<textarea rows="3" placeholder="Explain the next step in more detail..." data-f="text" data-r="${ri}">${esc(r.text)}</textarea>`;
+  return `<div class="round step" data-r="${ri}"><div class="top"><b>${stepTitle(r,true)}</b><button class="ghost" data-act="up" data-r="${ri}" aria-label="Move up">&uarr;</button><button class="ghost" data-act="dn" data-r="${ri}" aria-label="Move down">&darr;</button><button class="ghost dng" data-act="delround" data-r="${ri}">Delete</button></div>${body}</div>`;
 }
 // step number + repeat tags shown in front of each step
 const leadH=(rs,ii)=>`<span class="stn" title="Step ${ii+1}">${ii+1}</span>`+rs.filter(g=>ii>=g.a&&ii<=g.b).map(g=>`<span class="rb" title="Inside a repeat of x${g.n}">&#8635;${g.n}</span>`).join('');
@@ -309,9 +354,9 @@ function roundHTML(r,ri){
   const reps=`<div class="reps">${(r.reps||[]).map((g,k)=>{const d=`data-r="${ri}" data-k="${k}"`;return `<div class="rp"><span>Repeat steps</span><input type="number" min="1" max="${r.items.length}" value="${g.from}" data-f="rfrom" ${d} aria-label="Repeat from step"><span>to</span><input type="number" min="1" max="${r.items.length}" value="${g.to}" data-f="rto" ${d} aria-label="Repeat to step"><span>&times;</span><input type="number" min="1" value="${g.n}" data-f="rn" ${d} aria-label="Number of repeats"><button class="ghost dng" data-act="delrep" ${d} aria-label="Remove repeat">&times;</button></div>`}).join('')}<div class="row"><button data-act="addrep" data-r="${ri}">+ Repeat steps</button><span class="warn" data-rw="${ri}">${repWarn(r)}</span></div>${(r.reps||[]).length?'':'<div class="hint">Repeat a range of steps, e.g. steps 2 to 3 &times; 6.</div>'}</div>`;
   const hit=S.q.trim()&&roundHas(r,S.q.trim().toLowerCase());
   return `<div class="round ${hit?'hit':''}" data-r="${ri}"><div class="top"><span class="lblw"><b>R</b><input class="lbl" inputmode="numeric" value="${esc(String(r.label).replace(/^R/i,''))}" data-f="label" data-r="${ri}" aria-label="Round number"></span><span style="flex:1"></span><button class="ghost" data-act="up" data-r="${ri}" aria-label="Move up">&uarr;</button><button class="ghost" data-act="dn" data-r="${ri}" aria-label="Move down">&darr;</button><button class="ghost dng" data-act="delround" data-r="${ri}">Delete round</button></div>
-  ${items}
+  ${autoRow(r,ri,'pre')}${items}
   <div class="row"><button data-act="additem" data-r="${ri}">+ Stitch</button><button data-act="addgroup" data-r="${ri}">+ Group in one stitch</button></div>
-  ${reps}
+  ${reps}${autoRow(r,ri,'post')}
   <div class="meta"><label>Total<span class="tot"><input inputmode="numeric" style="width:64px;font-weight:800" value="${esc(r.manual?r.total:autoN(r))}" data-f="total" data-r="${ri}" data-tot="${ri}" ${r.manual?'':'disabled'}><b>sc</b></span></label><label class="chk"><input type="checkbox" data-f="manual" data-r="${ri}" ${r.manual?'checked':''}>Override</label><input class="note" placeholder="Note, e.g. color change on last stitch (blue)" value="${esc(r.note)}" data-f="note" data-r="${ri}"></div>
   <div class="prev" data-prev="${ri}">${frH(r)}</div></div>`;
 }
@@ -325,7 +370,7 @@ function renderMain0(){
     const pr=prog(p);
     m.innerHTML=`<div class="mh"><div class="row" style="justify-content:space-between"><h2 class="serif" style="margin:0">${esc(p.title||'Untitled')}</h2><div class="row"><button data-act="edit">Edit pattern</button><button class="pri ${pr.n&&pr.d===pr.n?'glow':''}" id="cbtn" data-act="complete" data-id="${p.id}">${pr.n&&pr.d===pr.n?'Complete project':'Close project'}</button></div></div>
     <p id="pgt">${pgText(pr)}</p><div class="bar bar-lg"><i id="pgb" style="width:${pr.pct}%"></i></div>${p.tabs.length?tabBar(p,ta,'track'):''}</div><div class="mb">
-    ${p.rounds.map((r,ri)=>(p.tabs.length&&r.tab!==ta)?'':r.step?`<div class="info"><span class="star">*</span><div class="prev sp">${stepH(r)}</div></div>`:`<label class="trk ${p.build.done[r.id]?'done':''}"><input type="checkbox" data-act="tick" data-r="${ri}" ${p.build.done[r.id]?'checked':''}><div class="prev">${frH(r)}</div></label>`).join('')||'<p>This pattern has no rounds yet.</p>'}
+    ${p.rounds.map((r,ri)=>(p.tabs.length&&r.tab!==ta)?'':r.step?`<div class="info ${r.type==='hook'?'hook':''}"><span class="star">${r.type==='hook'?IC.hook:r.type==='note'&&r.kind&&r.kind!=='standard'?noteIcon(r):'*'}</span><div class="prev sp">${stepH(r)}</div></div>`:`<label class="trk ${p.build.done[r.id]?'done':''}"><input type="checkbox" data-act="tick" data-r="${ri}" ${p.build.done[r.id]?'checked':''}><div class="prev">${frH(r)}</div></label>`).join('')||'<p>This pattern has no rounds yet.</p>'}
     <details style="color:var(--mute);margin-top:16px"><summary style="cursor:pointer">Abbreviations</summary><div class="abbr">${Object.values(T).map(v=>`<div><b>${esc(v[1])}</b><span>${esc(v[0])}</span></div>`).join('')}</div></details></div>`;
     return;
   }
@@ -360,10 +405,12 @@ document.addEventListener('input',e=>{
     else{if(el.value==='')return;const c=toRgb(r.color);c['rgb'.indexOf(f[1])]=Math.max(0,Math.min(255,Math.round(+el.value)||0));hex='#'+c.map(hex2).join('')}
     setColor(ri,hex,el);return}
   const row=el.closest('.it'),ri=+(row||el).dataset.r,rr=p.rounds[ri];
+  if(f==='mode'){const old=rr.mode;if(rr.text===noteText({kind:'tech',mode:old}))rr.text=noteText({kind:'tech',mode:el.value});rr.mode=el.value;save();renderMain();return}
   if(f==='manual'){rr.manual=el.checked;if(rr.manual&&!rr.total)rr.total=autoN(rr);save();renderMain();return}
   const RK={rfrom:'from',rto:'to',rn:'n'};
   if(RK[f])rr.reps[+el.dataset.k][RK[f]]=Math.max(1,+el.value||1);
   else if(row){const it=getIt(row);if(f==='n')it.n=Math.max(1,+el.value||1);else if(f==='skip')it.skip=el.checked;else it.t=el.value}
+  else if(f==='autopre'||f==='autopost'){rr[f==='autopre'?'noPre':'noPost']=!el.checked;el.closest('.auto').classList.toggle('off',!el.checked)}
   else if(f==='label'){const v=el.value.replace(/[^\d,\-]/g,'');if(v!==el.value)el.value=v;rr.label='R'+v}
   else if(f==='total'){const v=el.value.replace(/\D/g,'');if(v!==el.value)el.value=v;rr.total=v}
   else rr[f]=el.value;
@@ -407,6 +454,8 @@ document.addEventListener('click',e=>{
   else if(a==='build'){delete p.completed;p.build={done:{},started:Date.now()};S.open[p.id]=true;S.view='track';setNav(false)}
   else if(a==='img'){$('#imgin').click();return}
   else if(a==='delimg'){ask('Remove this photo from the project?','Remove').then(ok=>{if(ok){p.image='';dirtyImg.add(p.id);save();render()}});return}
+  else if(a==='notemenu'||a==='techmenu'){const at=+el.dataset.at,tb=p.tabs.length?tabOf(p):null;
+    pickNote(a==='techmenu').then(c=>{if(!c)return;p.rounds.splice(Math.min(at,p.rounds.length),0,{id:uid(),step:1,type:'note',kind:c.kind,mode:c.mode,color:'#e0577d',name:'',size:'',text:noteText(c),...(tb?{tab:tb}:{})});save();render()});return}
   else if(a==='addstep')p.rounds.splice(+el.dataset.at,0,{id:uid(),step:1,type:el.dataset.type,color:'#e0577d',name:'',size:'',text:'',...(p.tabs.length?{tab:tabOf(p)}:{})});
   else if(a==='addround'){const tb=p.tabs.length?tabOf(p):null;p.rounds.push({id:uid(),label:'R'+nextNum(p,tb),items:[{n:1,t:'ch'}],reps:[],total:'',manual:false,note:'',...(tb?{tab:tb}:{})})}
   else if(a==='delround')p.rounds.splice(+r,1);
@@ -458,6 +507,62 @@ function importFile(file){
 }
 // next round number = previous round's number + 1 (within the same tab), not the count of rounds
 function nextNum(p,tb){const rs=p.rounds.filter(x=>!x.step&&(!tb||x.tab===tb)),l=rs[rs.length-1],m=l&&/(\d+)\D*$/.exec(String(l.label));return m?+m[1]+1:rs.length+1}
+/* ---------- notes: kinds, techniques, chooser ---------- */
+const svg=(vb,body)=>`<svg class="ico" viewBox="${vb}" aria-hidden="true">${body}</svg>`;
+const IC={
+  // crochet piece (stitch rows visible) with polyester fluff bulging out of the opening
+  fill:svg('0 0 48 48','<path d="M11 18C9 32 15 43 24 43s15-11 13-25"/><ellipse cx="24" cy="18" rx="13" ry="4.5"/><g stroke-width="1.6"><path d="M14 24l2 3 2-3M19 24l2 3 2-3M24 24l2 3 2-3M29 24l2 3 2-3"/><path d="M16.5 30l2 3 2-3M21.5 30l2 3 2-3M26.5 30l2 3 2-3"/><path d="M19 36l2 3 2-3M24 36l2 3 2-3"/></g><path d="M14 17C9 10 16 5 21 9C22 3 31 3 31 9C36 6 41 13 34 17Z" style="fill:var(--panel)"/>'),
+  spiral:svg('0 0 24 24','<path d="M12 12a1.5 1.5 0 0 1 1.5 1.5 3 3 0 0 1-3 3 4.5 4.5 0 0 1-4.5-4.5 6 6 0 0 1 6-6 7.5 7.5 0 0 1 7.5 7.5"/>'),
+  link:svg('0 0 24 24','<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'),
+  rows:svg('0 0 24 24','<path d="M4 8h16M16 4l4 4-4 4M20 17H4M8 13l-4 4 4 4"/>'),
+  note:svg('0 0 24 24','<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>'),
+  scissors:svg('0 0 24 24','<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1 20 20M20 4 8.1 15.9"/>'),
+  pin:svg('0 0 24 24','<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>'),
+  eye:svg('0 0 24 24','<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>'),
+  needle:svg('0 0 24 24','<path d="M20 4 5 19"/><path d="M5 19l-2 2M17 7l-2-2"/>'),
+  hook:svg('0 0 24 24','<path d="M4 20 16 8"/><path d="M16 8a3 3 0 1 1 3.2 3"/>')};
+IC.fill=IC.fill.replace('class="ico"','class="ico big"');
+// shown in the "Add a note" list
+const NOTE_KINDS=[
+  {k:'standard',icon:IC.note,t:'Standard note',d:'Write any instruction in your own words.'},
+  {k:'fill',icon:IC.fill,t:'Polyester fill',d:'Stuff the piece with polyester fiberfill (amigurumi).'},
+  {k:'fasten',icon:IC.scissors,t:'Fasten off',d:'Cut the yarn and leave a tail for sewing.'}];
+// shown in the "Technique" list
+const TECHS=[
+  {m:'continuous',icon:IC.spiral,t:'Continuous rounds',d:'Spiral: no joining, no turning chain. Use a marker.'},
+  {m:'joined',icon:IC.link,t:'Joined rounds',d:'Each round starts with ch 1 and ends with sl (added automatically).'},
+  {m:'rows',icon:IC.rows,t:'Working in rows',d:'Turn your work at the end of every row.'}];
+// older notes made with removed kinds still display fine
+const NK=Object.fromEntries(NOTE_KINDS.concat([{k:'marker',icon:IC.pin,t:'Stitch marker'},{k:'eyes',icon:IC.eye,t:'Safety eyes'},{k:'sew',icon:IC.needle,t:'Sew pieces together'}]).map(k=>[k.k,k])),TK=Object.fromEntries(TECHS.map(t=>[t.m,t]));
+const noteIcon=r=>{const k=r.kind==='tech'?TK[r.mode]:NK[r.kind];return k?k.icon:'*'};
+const TECH_TEXT={continuous:'Work in continuous rounds (a spiral): do not join at the end of a round. Use a stitch marker to mark the start of each round.',joined:'Work in joined rounds: start every round with a chain 1 (not counted) and end it with a slip stitch into the first stitch.',rows:'Work in rows: turn your work at the end of every row.'};
+const KIND_TEXT={standard:'',fill:'Stuff firmly with polyester fiberfill and shape as you go. Add more as the opening gets smaller.',marker:'Place a stitch marker in the first stitch of the round.',eyes:'Place the safety eyes between rounds __ and __, about __ stitches apart. Secure them before stuffing.',fasten:'Fasten off, cut the yarn and leave a long tail for sewing.',sew:'Sew the pieces together with the tail and a yarn needle.'};
+const noteText=c=>c.kind==='tech'?TECH_TEXT[c.mode]||'':KIND_TEXT[c.kind]||'';
+function stepTitle(r,withIcon){
+  if(r.type!=='note')return STEPN[r.type];
+  const k=r.kind==='tech'?TK[r.mode]:NK[r.kind]||NK.standard;
+  return (withIcon&&k?k.icon+' ':'')+(r.kind==='tech'?'Technique: '+(k?k.t:''):k?k.t:'Note')}
+function techUI(r,ri){
+  if(r.kind!=='tech')return'';
+  return `<div class="row"><select data-f="mode" data-r="${ri}" aria-label="Technique">${TECHS.map(t=>`<option value="${t.m}" ${t.m===r.mode?'selected':''}>${t.t}</option>`).join('')}</select></div><div class="hint" style="margin:6px 0 8px">${r.mode==='joined'?'Every round below gets an automatic <b>1 ch</b> at the start and <b>1 sl</b> at the end (not counted in the total). You can switch them off per round.':'Applies to the rounds below, until the next technique.'}</div>`}
+function autoRow(r,ri,w){
+  if(jmode(r)!=='joined')return'';
+  const pre=w==='pre',off=pre?r.noPre:r.noPost;
+  return `<label class="auto ${off?'off':''}" title="Added automatically in joined rounds and not counted in the total. Untick to switch it off for this round."><input type="checkbox" data-f="${pre?'autopre':'autopost'}" data-r="${ri}" ${off?'':'checked'}><span class="ab">auto</span><b>1 ${T[pre?'ch':'sl'][1]}</b><span class="ad">${pre?'start of round':'end of round'}</span></label>`}
+function pickNote(tech){return new Promise(res=>{
+  const d=document.createElement('dialog');d.className='nm';let out=null;
+  const opt=(ic,t,desc,at)=>`<button type="button" class="nopt" ${at}><span class="ni">${ic}</span><span><b>${t}</b><small>${desc}</small></span></button>`;
+  d.innerHTML=tech
+    ?`<h3 class="serif" style="margin:0 0 4px">Technique</h3><p class="hint" style="margin:0 0 10px">Applies to the rounds below it, until the next technique.</p>`+TECHS.map(t=>opt(t.icon,t.t,t.d,`data-m="${t.m}"`)).join('')+`<div class="row" style="justify-content:flex-end"><button type="button" data-k="cancel">Cancel</button></div>`
+    :`<h3 class="serif" style="margin:0 0 10px">Add a note</h3>`+NOTE_KINDS.map(k=>opt(k.icon,k.t,k.d,`data-k="${k.k}"`)).join('')+`<div class="row" style="justify-content:flex-end"><button type="button" data-k="cancel">Cancel</button></div>`;
+  d.addEventListener('click',e=>{
+    if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();return}   // tap outside = close
+    const b=e.target.closest('[data-k],[data-m]');if(!b)return;const k=b.dataset.k,m=b.dataset.m;
+    if(k==='cancel'){d.close();return}
+    out=m?{kind:'tech',mode:m}:{kind:k};d.close()});
+  d.addEventListener('close',()=>{res(out);d.remove()});
+  document.body.appendChild(d);d.showModal()})}
+
 /* ---------- tabs ---------- */
 const tabOf=p=>p.tabs.length?(p.tabs.some(t=>t.id===S.tab[p.id])?S.tab[p.id]:p.tabs[0].id):null;
 const tprog=(p,id)=>{const rs=p.rounds.filter(r=>!r.step&&r.tab===id);return{n:rs.length,d:rs.filter(r=>p.build&&p.build.done[r.id]).length}};
@@ -605,7 +710,7 @@ if('serviceWorker' in navigator){
   var isApp=['standalone','fullscreen','minimal-ui','window-controls-overlay'].some(function(m){return matchMedia('(display-mode: '+m+')').matches})||navigator.standalone===true;
   var showUpdate=function(reg){
     // Normal browser tab (desktop or mobile Chrome): no popup. Quietly switch to the new version; it is used on the next page load.
-    if(!isApp){if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});return}
+    if(!isApp){if(reg.waiting){accepted=true;try{if(typeof writeNow==='function'&&saveT)writeNow()}catch(e){}reg.waiting.postMessage({type:'SKIP_WAITING'})}return}
     if(document.querySelector('.upd'))return;
     var bar=document.createElement('div');bar.className='upd';bar.setAttribute('role','status');
     bar.innerHTML='<span>A new version is available</span><button class="pri" type="button">Update</button><button class="ghost" type="button" aria-label="Later" title="Later">&times;</button>';
@@ -629,7 +734,7 @@ if('serviceWorker' in navigator){
       });
       var check=function(){if(navigator.onLine)reg.update().catch(function(){})};
       document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
-      setInterval(check,60*60*1000);
+      setInterval(check,60*60*1000);window.addEventListener('online',check);check();   // also check right at launch
     }).catch(function(){});
   });
 }
