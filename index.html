@@ -55,6 +55,9 @@ img,.ball{-webkit-user-drag:none;user-select:none;-webkit-user-select:none;-webk
 .themes button{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid transparent;background:none;color:var(--mute)}
 .themes button[aria-pressed=true]{background:var(--bg);color:var(--acc);border-color:var(--line)}
 .hint-m{display:none}
+.upd{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);padding:8px 8px 8px 16px;background:var(--panel);color:var(--ink);border:1px solid var(--acc);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);animation:updin .3s ease}
+.upd span{font-weight:700}
+@keyframes updin{from{transform:translate(-50%,-20px);opacity:0}}
 aside{background:var(--panel);border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
 aside h1{margin:0;font-size:24px}
 .tools{display:flex;gap:6px;flex-wrap:wrap}
@@ -592,8 +595,39 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName==='IMG')e.preven
 load();render();
 </script>
 <script>
+/* Offline support + "update available" bar */
 if('serviceWorker' in navigator){
-  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+  var accepted=false,reloading=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    if(!accepted||reloading)return;reloading=true;location.reload();   // only after the user tapped Update
+  });
+  var showUpdate=function(reg){
+    if(document.querySelector('.upd'))return;
+    var bar=document.createElement('div');bar.className='upd';bar.setAttribute('role','status');
+    bar.innerHTML='<span>A new version is available</span><button class="pri" type="button">Update</button><button class="ghost" type="button" aria-label="Later" title="Later">&times;</button>';
+    var b=bar.querySelectorAll('button');
+    b[0].onclick=function(){
+      accepted=true;b[0].disabled=true;b[0].textContent='Updating...';
+      try{if(typeof writeNow==='function'&&saveT)writeNow()}catch(e){}   // flush unsaved edits first
+      if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});else location.reload();
+    };
+    b[1].onclick=function(){bar.remove()};
+    document.body.appendChild(bar);
+  };
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
+      if(reg.waiting&&navigator.serviceWorker.controller)showUpdate(reg);
+      reg.addEventListener('updatefound',function(){
+        var nw=reg.installing;if(!nw)return;
+        nw.addEventListener('statechange',function(){
+          if(nw.state==='installed'&&navigator.serviceWorker.controller)showUpdate(reg);
+        });
+      });
+      var check=function(){if(navigator.onLine)reg.update().catch(function(){})};
+      document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+      setInterval(check,60*60*1000);
+    }).catch(function(){});
+  });
 }
 </script>
 </body>
