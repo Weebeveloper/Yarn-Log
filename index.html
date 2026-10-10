@@ -601,7 +601,11 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange',function(){
     if(!accepted||reloading)return;reloading=true;location.reload();   // only after the user tapped Update
   });
+  // true only when running as the installed app (desktop or mobile), not in a browser tab
+  var isApp=['standalone','fullscreen','minimal-ui','window-controls-overlay'].some(function(m){return matchMedia('(display-mode: '+m+')').matches})||navigator.standalone===true;
   var showUpdate=function(reg){
+    // Normal browser tab (desktop or mobile Chrome): no popup. Quietly switch to the new version; it is used on the next page load.
+    if(!isApp){if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});return}
     if(document.querySelector('.upd'))return;
     var bar=document.createElement('div');bar.className='upd';bar.setAttribute('role','status');
     bar.innerHTML='<span>A new version is available</span><button class="pri" type="button">Update</button><button class="ghost" type="button" aria-label="Later" title="Later">&times;</button>';
