@@ -77,12 +77,14 @@ svg.ico.big{width:1.9em;height:1.9em}
 .it .sk{flex:none}
 .it .dng{flex:none}
 @media (max-width:760px){
-  .it{gap:4px}
-  .grab{min-width:18px;letter-spacing:-4px}
-  .it input[type=number]{width:46px;padding:6px 3px;flex:none}
-  .it select{flex:1 1 0;padding:6px 2px}
-  .it .sk{flex-direction:column;width:40px;font-size:10px;line-height:1.1;text-align:center;white-space:normal;gap:2px}
-  .it .ghost{padding:4px 6px}
+  /* phone: 4 fixed cells on line 1 (handle+number | amount | stitch type | x), "Don't count" on line 2 */
+  .it{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:4px 8px}
+  .it>.lead{grid-column:1;grid-row:1}
+  .it>input[type=number]{grid-column:2;grid-row:1;width:52px;padding:6px 4px}
+  .it>select{grid-column:3;grid-row:1;width:100%;min-width:0;padding:6px 4px}
+  .it>.dng{grid-column:4;grid-row:1;padding:4px 8px}
+  .it>.sk{grid-column:1/-1;grid-row:2;justify-self:end;font-size:12.5px;gap:6px;padding:0 2px 2px}
+  .grab{min-width:20px;letter-spacing:-4px}
 }
 /* automatic ch 1 / sl rows of joined rounds */
 .auto{display:flex;align-items:center;gap:8px;margin:8px 0;padding:6px 10px;border:1px dashed var(--acc);border-radius:10px;background:var(--bg);font-size:14px;cursor:pointer}
@@ -176,7 +178,7 @@ textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-rad
 .trk .prev{margin:0;flex:1}
 .bar-lg{height:10px}
 .warn{color:var(--acc2);font-size:13px}
-.round{content-visibility:auto;contain-intrinsic-size:auto 280px}
+.mb{overflow-anchor:none}   /* we restore the scroll position ourselves */
 button:disabled{opacity:.35;cursor:default}
 /* tabs */
 .pth{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -205,6 +207,8 @@ button:disabled{opacity:.35;cursor:default}
 /* drag to reorder */
 .grab{touch-action:none;cursor:grab;border:none;background:none;padding:4px 2px;color:var(--mute);font-size:16px;line-height:1;letter-spacing:-3px;min-width:26px;min-height:32px;flex:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .grab:hover{color:var(--acc)}
+.lead{display:inline-flex;align-items:center;gap:6px;flex:none}
+.grab.hold{color:var(--acc);transform:scale(1.3)}
 .drag{position:relative;z-index:5;background:var(--panel);box-shadow:0 8px 22px rgba(0,0,0,.45);border-radius:10px;cursor:grabbing}
 .dropb{box-shadow:0 -3px 0 var(--acc)}
 .dropa{box-shadow:0 3px 0 var(--acc)}
@@ -221,7 +225,7 @@ body.dragging,body.dragging *{user-select:none;-webkit-user-select:none;cursor:g
 /* dialogs + celebration */
 dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:16px;max-width:min(360px,calc(100vw - 32px))}
 dialog::backdrop{background:rgba(0,0,0,.55)}
-dialog p{margin:0 0 14px}
+dialog p{margin:0 0 14px;white-space:pre-line}
 .cele{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(20,14,26,.6);animation:cfade .25s}
 .cele .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 26px;text-align:center;max-width:min(340px,calc(100vw - 32px));animation:cpop .55s cubic-bezier(.2,1.4,.4,1)}
 .cele .ball{font-size:64px;line-height:1.1;animation:cbounce 1.3s ease-in-out infinite}
@@ -232,7 +236,7 @@ dialog p{margin:0 0 14px}
 @keyframes cbounce{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-10px) rotate(8deg)}}
 @keyframes cglow{0%,100%{box-shadow:0 0 0 0 rgba(181,140,240,0)}50%{box-shadow:0 0 0 6px rgba(181,140,240,.4)}}
 @media (prefers-reduced-motion:reduce){.cele .ball,.cele .card,.glow{animation:none}}
-.trk{content-visibility:auto;contain-intrinsic-size:auto 56px}
+
 @media (max-width:760px){.app{position:relative}.app>aside{position:absolute;inset:0;width:100%;z-index:20;border-right:none}.app.nav-closed>aside{margin-left:0;transform:translateX(-100%);transition:transform .28s ease,visibility 0s .28s}.navclose,.navopen{display:none!important}.hint-d{display:none}.hint-m{display:block}main{padding:0}.mh{padding:16px 16px 10px}.mb{padding:0 16px 16px}}
 </style>
 </head>
@@ -347,7 +351,7 @@ const leadH=(rs,ii)=>`<span class="stn" title="Step ${ii+1}">${ii+1}</span>`+rs.
 function refreshLeads(r,ri){const rs=rngs(r);r.items.forEach((_,ii)=>{const ld=document.querySelector(`[data-ld="${ri}-${ii}"]`);if(!ld)return;ld.innerHTML=leadH(rs,ii);const box=ld.closest('.it,.grp');if(box)box.classList.toggle('inrep',rs.some(g=>ii>=g.a&&ii<=g.b))})}
 function roundHTML(r,ri){
   if(r.step)return stepHTML(r,ri);
-  const rs=rngs(r),cov=ii=>rs.filter(g=>ii>=g.a&&ii<=g.b),lead=ii=>`<button type="button" class="grab" title="Drag to reorder" aria-label="Drag to reorder (or use the up and down arrow keys)">&#8942;&#8942;</button><span class="ld" data-ld="${ri}-${ii}">${leadH(rs,ii)}</span>`;
+  const rs=rngs(r),cov=ii=>rs.filter(g=>ii>=g.a&&ii<=g.b),lead=ii=>`<span class="lead"><button type="button" class="grab" title="Drag to reorder" aria-label="Drag to reorder (or use the up and down arrow keys)">&#8942;&#8942;</button><span class="ld" data-ld="${ri}-${ii}">${leadH(rs,ii)}</span></span>`;
   const items=r.items.map((it,ii)=>it.group?
     `<div class="grp ${cov(ii).length?'inrep':''}" data-top><small>${lead(ii)} All of these go into one stitch:</small>${it.group.map((c,ci)=>itemRow(c,`data-r="${ri}" data-i="${ii}" data-c="${ci}"`)).join('')}<div class="row"><button data-act="addchild" data-r="${ri}" data-i="${ii}">+ Add to group</button><button class="dng" data-act="delitem" data-r="${ri}" data-i="${ii}">Remove group</button></div></div>`
     :itemRow(it,`data-r="${ri}" data-i="${ii}"`,lead(ii),cov(ii).length)).join('');
@@ -361,7 +365,7 @@ function roundHTML(r,ri){
   <div class="prev" data-prev="${ri}">${frH(r)}</div></div>`;
 }
 
-function renderMain(){inval();const m=$('#main'),ob=m.querySelector('.mb'),k=S.sel+'|'+S.view+'|'+(S.tab[S.sel]||''),keep=ob&&m.dataset.k===k?ob.scrollTop:0;renderMain0();m.dataset.k=k;const nb=m.querySelector('.mb');if(nb)nb.scrollTop=keep}
+function renderMain(){inval();const m=$('#main'),ob=m.querySelector('.mb'),k=S.sel+'|'+S.view+'|'+(S.tab[S.sel]||''),keep=ob&&m.dataset.k===k?ob.scrollTop:0;renderMain0();m.dataset.k=k;const nb=m.querySelector('.mb');if(nb){nb.scrollTop=keep;requestAnimationFrame(()=>{if(nb.isConnected&&Math.abs(nb.scrollTop-keep)>1)nb.scrollTop=keep})}}
 function renderMain0(){
   const p=cur(),m=$('#main');
   if(!p){m.innerHTML='<div class="mb"><div class="empty"><h2>Pick a project or start a new one</h2><p>Write patterns round by round, then build them to tick off as you crochet.</p><p class="hint hint-m">Swipe right to open your projects.</p><p class="hint hint-d">Open your projects with the &#8250; tab on the left edge.</p></div></div>';return}
@@ -458,7 +462,9 @@ document.addEventListener('click',e=>{
     pickNote(a==='techmenu').then(c=>{if(!c)return;p.rounds.splice(Math.min(at,p.rounds.length),0,{id:uid(),step:1,type:'note',kind:c.kind,mode:c.mode,color:'#e0577d',name:'',size:'',text:noteText(c),...(tb?{tab:tb}:{})});save();render()});return}
   else if(a==='addstep')p.rounds.splice(+el.dataset.at,0,{id:uid(),step:1,type:el.dataset.type,color:'#e0577d',name:'',size:'',text:'',...(p.tabs.length?{tab:tabOf(p)}:{})});
   else if(a==='addround'){const tb=p.tabs.length?tabOf(p):null;p.rounds.push({id:uid(),label:'R'+nextNum(p,tb),items:[{n:1,t:'ch'}],reps:[],total:'',manual:false,note:'',...(tb?{tab:tb}:{})})}
-  else if(a==='delround')p.rounds.splice(+r,1);
+  else if(a==='delround'){const rd=p.rounds[+r],cut=x=>x.length>140?x.slice(0,137)+'...':x;
+    const msg=rd.step?`Delete this step?\n${cut(stepText(rd)||'(empty note)')}`:`Delete round ${rd.label}?\n${cut(fr(rd).slice(String(rd.label).length).trim()||'(no stitches)')}`;
+    ask(msg,'Delete').then(ok=>{if(!ok)return;const i=p.rounds.indexOf(rd);if(i>=0)p.rounds.splice(i,1);save();render()});return}
   else if(a==='up'||a==='dn'){const d=a==='up'?-1:1,rd=p.rounds[+r];let j=+r+d;while(j>=0&&j<p.rounds.length&&p.rounds[j].tab!==rd.tab)j+=d;if(j>=0&&j<p.rounds.length){p.rounds.splice(+r,1);p.rounds.splice(j,0,rd)}}
   
   else if(a==='cp'){const id2=p.rounds[+r].id;S.cp=S.cp===id2?null:id2}
@@ -477,12 +483,14 @@ document.addEventListener('click',e=>{
   else if(a==='addchild')p.rounds[+r].items[+el.dataset.i].group.push({n:1,t:'ch'});
   else if(a==='addrep'){const rd=p.rounds[+r];rd.reps.push({from:1,to:rd.items.length||1,n:2})}
   else if(a==='delrep')p.rounds[+r].reps.splice(+el.dataset.k,1);
-  else if(a==='delitem'){const rd=p.rounds[+r];rd.items.splice(+el.dataset.i,1);dropStep(rd,+el.dataset.i)}
-  else if(a==='delchild'){const rd=p.rounds[+r],g=rd.items[+el.dataset.i].group;g.splice(+el.dataset.c,1);if(!g.length){rd.items.splice(+el.dataset.i,1);dropStep(rd,+el.dataset.i)}}
+  else if(a==='delitem'){const rd=p.rounds[+r],i=+el.dataset.i,it=rd.items[i];
+    ask(`Delete step ${i+1} of round ${rd.label}?\n${it.group?'Group in one stitch: ':''}${fi(it)}`,'Delete').then(ok=>{if(!ok)return;rd.items.splice(i,1);dropStep(rd,i);save();render()});return}
+  else if(a==='delchild'){const rd=p.rounds[+r],i=+el.dataset.i,g=rd.items[i].group,c=g[+el.dataset.c];
+    ask(`Remove "${fi(c)}" from the group in step ${i+1} of round ${rd.label}?`,'Remove').then(ok=>{if(!ok)return;g.splice(g.indexOf(c),1);if(!g.length){rd.items.splice(i,1);dropStep(rd,i)}save();render()});return}
   else return;
   const PART={additem:1,addgroup:1,addchild:1,addrep:1,delrep:1,delitem:1,delchild:1};
   const node=PART[a]&&!S.q.trim()&&document.querySelector(`.round[data-r="${r}"]`);
-  if(node){inval();node.outerHTML=roundHTML(p.rounds[+r],+r);refreshDerived(p,+r+1);save();return}
+  if(node){const mb=node.closest('.mb'),st=mb?mb.scrollTop:0;inval();node.outerHTML=roundHTML(p.rounds[+r],+r);refreshDerived(p,+r+1);if(mb)mb.scrollTop=st;save();return}
   save();render();
 });
 // keep repeat ranges pointing at the same steps after a step is removed
@@ -610,16 +618,22 @@ function ask(msg,ok){return new Promise(res=>{const d=document.createElement('di
   document.body.appendChild(d);d.showModal()})}
 
 /* ---------- drag steps to reorder inside a round (touch + mouse; arrow keys on the handle too) ---------- */
-let DR=null;
+let DR=null,HD=null;
 const topKids=round=>[...round.children].filter(c=>c.hasAttribute('data-top'));
 document.addEventListener('pointerdown',e=>{
   const h=e.target.closest&&e.target.closest('.grab');if(!h||(e.pointerType==='mouse'&&e.button!==0))return;
   const box=h.closest('[data-top]'),round=h.closest('.round'),mb=h.closest('.mb');if(!box||!round||!mb)return;
-  e.preventDefault();const sibs=topKids(round),i=sibs.indexOf(box);
-  DR={h,box,round,mb,sibs,from:i,to:i,y:e.clientY,y0:e.clientY,s0:mb.scrollTop,id:e.pointerId,ri:+round.dataset.r,raf:0};
-  try{h.setPointerCapture(e.pointerId)}catch(_){}
-  box.classList.add('drag');round.style.contentVisibility='visible';document.body.classList.add('dragging');
-  DR.raf=requestAnimationFrame(dragLoop)});
+  e.preventDefault();try{h.setPointerCapture(e.pointerId)}catch(_){}
+  // the drag only starts after a short hold; moving before that cancels it
+  HD={h,box,round,mb,id:e.pointerId,ox:e.clientX,oy:e.clientY,y:e.clientY,timer:setTimeout(startDrag,e.pointerType==='mouse'?180:380)};
+  h.classList.add('hold')});
+function cancelHold(){if(!HD)return;clearTimeout(HD.timer);HD.h.classList.remove('hold');HD=null}
+function startDrag(){const k=HD;if(!k)return;HD=null;k.h.classList.remove('hold');
+  const sibs=topKids(k.round),i=sibs.indexOf(k.box);
+  DR={h:k.h,box:k.box,round:k.round,mb:k.mb,sibs,from:i,to:i,y:k.y,y0:k.y,s0:k.mb.scrollTop,id:k.id,ri:+k.round.dataset.r,raf:0};
+  k.box.classList.add('drag');k.round.style.contentVisibility='visible';document.body.classList.add('dragging');buzz(15);dragUpd();
+  DR.raf=requestAnimationFrame(dragLoop)}
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('.grab'))e.preventDefault()});
 function dragUpd(){const d=DR;if(!d)return;
   d.box.style.transform=`translateY(${d.y-d.y0+d.mb.scrollTop-d.s0}px)`;
   const others=d.sibs.filter(s=>s!==d.box);let to=0;
@@ -629,14 +643,16 @@ function dragUpd(){const d=DR;if(!d)return;
 function dragLoop(){const d=DR;if(!d)return;const r=d.mb.getBoundingClientRect(),z=70;let v=0;
   if(d.y<r.top+z)v=-Math.ceil((r.top+z-d.y)/6);else if(d.y>r.bottom-z)v=Math.ceil((d.y-(r.bottom-z))/6);
   if(v){d.mb.scrollTop+=v;dragUpd()}d.raf=requestAnimationFrame(dragLoop)}
-document.addEventListener('pointermove',e=>{if(!DR||e.pointerId!==DR.id)return;DR.y=e.clientY;dragUpd()});
+document.addEventListener('pointermove',e=>{
+  if(HD&&e.pointerId===HD.id){HD.y=e.clientY;if(Math.hypot(e.clientX-HD.ox,e.clientY-HD.oy)>12)cancelHold();return}
+  if(!DR||e.pointerId!==DR.id)return;DR.y=e.clientY;dragUpd()});
 function dragEnd(e,cancel){const d=DR;if(!d||e.pointerId!==d.id)return;DR=null;cancelAnimationFrame(d.raf);
   d.box.classList.remove('drag');d.box.style.transform='';d.round.style.contentVisibility='';d.sibs.forEach(s=>s.classList.remove('dropb','dropa'));document.body.classList.remove('dragging');
   if(!cancel&&d.to!==d.from)moveItem(d.round,d.ri,d.from,d.to)}
-document.addEventListener('pointerup',e=>dragEnd(e,false));
-document.addEventListener('pointercancel',e=>dragEnd(e,true));
+document.addEventListener('pointerup',e=>{if(HD&&e.pointerId===HD.id)cancelHold();dragEnd(e,false)});
+document.addEventListener('pointercancel',e=>{if(HD&&e.pointerId===HD.id)cancelHold();dragEnd(e,true)});
 function moveItem(round,ri,from,to){const p=cur(),rd=p.rounds[ri];rd.items.splice(to,0,rd.items.splice(from,1)[0]);
-  inval();round.outerHTML=roundHTML(rd,ri);refreshDerived(p,ri+1);save()}
+  const mb=round.closest('.mb'),st=mb?mb.scrollTop:0;inval();round.outerHTML=roundHTML(rd,ri);refreshDerived(p,ri+1);if(mb)mb.scrollTop=st;save()}
 document.addEventListener('keydown',e=>{
   const h=e.target.closest&&e.target.closest('.grab');if(!h||(e.key!=='ArrowUp'&&e.key!=='ArrowDown'))return;e.preventDefault();
   const box=h.closest('[data-top]'),round=h.closest('.round'),i=topKids(round).indexOf(box),j=i+(e.key==='ArrowUp'?-1:1),ri=+round.dataset.r;
