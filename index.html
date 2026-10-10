@@ -6,12 +6,18 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23b58cf0%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23e0577d%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22url%28%23g%29%22/%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2218%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222.5%22/%3E%3Cpath%20d%3D%22M18%2026c10%206%2018%206%2028%200M16%2034c11%207%2021%207%2032%200M21%2043c8%204%2014%204%2022%200M27%2016c-4%2010-4%2021%202%2031M38%2015c4%209%204%2021-1%2032%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20opacity%3D%22.85%22/%3E%3Cpath%20d%3D%22M46%2046c5%203%207%207%2012%207%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22/%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1e1823">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="dark light">
 <script>
-/* Force the dark theme everywhere (browser tab and installed app).
-   To follow the device setting again, delete this script and set theme-color back to light/dark variants. */
-document.documentElement.setAttribute('data-theme','dark');
-document.documentElement.style.colorScheme='dark';
+/* Theme: the saved choice (localStorage 'yarnlog.theme'), dark by default. */
+(function(){
+  window.applyTheme=function(t){
+    document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;
+    var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light'?'#f6efe6':'#1e1823';
+    var c=document.querySelector('meta[name=color-scheme]');if(c)c.content=t;
+  };
+  var t='dark';try{var s=localStorage.getItem('yarnlog.theme');if(s==='light'||s==='dark')t=s}catch(e){}
+  window.applyTheme(t);
+})();
 </script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,7 +41,20 @@ button.dng{color:var(--acc2)}
 button.ghost{border:none;background:none;padding:4px 8px}
 input,select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0}
 :focus-visible{outline:2px solid var(--acc);outline-offset:1px}
-.app{display:grid;grid-template-columns:290px minmax(0,1fr);grid-template-rows:minmax(0,1fr);height:100%}
+.app{display:flex;height:100%;overflow:hidden}
+.app>aside{width:290px;flex:none;transition:margin-left .28s ease,transform .28s ease}
+.app.nav-closed>aside{margin-left:-290px;visibility:hidden;transition:margin-left .28s ease,visibility 0s .28s}
+.app>main{flex:1}
+.navclose{margin-left:auto;font-size:26px;line-height:1;color:var(--mute);padding:2px 10px}
+.navopen{display:none;position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:15;width:22px;height:60px;padding:0;border-left:none;border-radius:0 14px 14px 0;background:var(--panel);color:var(--acc);font-size:20px;line-height:1;opacity:.85}
+.app.nav-closed .navopen{display:block}
+img,.ball{-webkit-user-drag:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.th,.img img,aside h1 img{pointer-events:none}
+.cele .ball svg{display:block;margin:0 auto}
+.themes{display:inline-flex;gap:2px}
+.themes button{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid transparent;background:none;color:var(--mute)}
+.themes button[aria-pressed=true]{background:var(--bg);color:var(--acc);border-color:var(--line)}
+.hint-m{display:none}
 aside{background:var(--panel);border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
 aside h1{margin:0;font-size:24px}
 .tools{display:flex;gap:6px;flex-wrap:wrap}
@@ -113,14 +132,69 @@ textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-rad
 .bar-lg{height:10px}
 .warn{color:var(--acc2);font-size:13px}
 .round{content-visibility:auto;contain-intrinsic-size:auto 280px}
+button:disabled{opacity:.35;cursor:default}
+/* tabs */
+.pth{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pth h2{margin:0}
+.sub{font-size:13px;color:var(--mute);padding:3px 8px;border-color:transparent;background:none}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 4px;max-height:118px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.tn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.abbr{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 18px;margin:12px 0 0}
+.abbr div{display:flex;gap:12px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--line)}
+.abbr b{flex:none;min-width:58px;font-family:ui-monospace,Menlo,monospace;color:var(--acc)}
+.abbr span{color:var(--ink)}
+.tab{flex:0 1 auto;max-width:100%;min-width:0;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 13px;font-size:14px;white-space:nowrap}
+.tab.on{background:var(--acc);border-color:var(--acc);color:var(--accink);font-weight:700}
+.tab.add{border-style:dashed;color:var(--mute)}
+.tab.hit::after{content:'\2022';color:var(--acc2);font-weight:800}
+.tab small{opacity:.75;flex:none}
+.tab.fin:not(.on){border-color:var(--ok);color:var(--ok)}
+.tin{background:none;border:none;padding:0;min-width:4ch;max-width:min(60vw,24ch);text-overflow:ellipsis;font:inherit;font-weight:700;color:inherit;border-radius:4px}
+.lblw{display:inline-flex;align-items:center;gap:2px;font-size:16px}
+.lblw .lbl{width:56px}
+.tot{display:inline-flex;align-items:center;gap:4px;color:var(--ink)}
+.tabtools{display:flex;gap:2px;justify-content:flex-end;margin:0 0 8px}
+.tabtools button{font-size:12px;color:var(--mute);padding:2px 8px}
+.bld .chips{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 6px}
+.bld .chips button{font-size:12px;padding:2px 8px;border-radius:999px}
+/* drag to reorder */
+.grab{touch-action:none;cursor:grab;border:none;background:none;padding:4px 2px;color:var(--mute);font-size:16px;line-height:1;letter-spacing:-3px;min-width:26px;min-height:32px;flex:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.grab:hover{color:var(--acc)}
+.drag{position:relative;z-index:5;background:var(--panel);box-shadow:0 8px 22px rgba(0,0,0,.45);border-radius:10px;cursor:grabbing}
+.dropb{box-shadow:0 -3px 0 var(--acc)}
+.dropa{box-shadow:0 3px 0 var(--acc)}
+body.dragging,body.dragging *{user-select:none;-webkit-user-select:none;cursor:grabbing}
+/* color picker */
+.sbtn{width:44px;height:36px;border-radius:8px;border:2px solid var(--line);padding:0;flex:none}
+.cpan{margin-top:10px;padding:10px;background:var(--bg);border-radius:10px;display:flex;flex-direction:column;gap:10px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.swatch{width:36px;height:36px;border-radius:50%;border:2px solid var(--line);padding:0}
+.rgb{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.rgb label{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:2px}
+.rgb input[type=number]{width:68px}
+.rgb input.hex{width:96px;font-family:ui-monospace,Menlo,monospace}
+/* dialogs + celebration */
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:16px;max-width:min(360px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog p{margin:0 0 14px}
+.cele{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(20,14,26,.6);animation:cfade .25s}
+.cele .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 26px;text-align:center;max-width:min(340px,calc(100vw - 32px));animation:cpop .55s cubic-bezier(.2,1.4,.4,1)}
+.cele .ball{font-size:64px;line-height:1.1;animation:cbounce 1.3s ease-in-out infinite}
+.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:70}
+.glow{animation:cglow 1.6s ease-in-out infinite}
+@keyframes cpop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes cfade{from{opacity:0}}
+@keyframes cbounce{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-10px) rotate(8deg)}}
+@keyframes cglow{0%,100%{box-shadow:0 0 0 0 rgba(181,140,240,0)}50%{box-shadow:0 0 0 6px rgba(181,140,240,.4)}}
+@media (prefers-reduced-motion:reduce){.cele .ball,.cele .card,.glow{animation:none}}
 .trk{content-visibility:auto;contain-intrinsic-size:auto 56px}
-@media (max-width:760px){.app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}aside{border-right:none;border-bottom:1px solid var(--line);max-height:38vh}main{padding:0}.mh{padding:16px 16px 10px}.mb{padding:0 16px 16px}}
+@media (max-width:760px){.app{position:relative}.app>aside{position:absolute;inset:0;width:100%;z-index:20;border-right:none}.app.nav-closed>aside{margin-left:0;transform:translateX(-100%);transition:transform .28s ease,visibility 0s .28s}.navclose,.navopen{display:none!important}.hint-d{display:none}.hint-m{display:block}main{padding:0}.mh{padding:16px 16px 10px}.mb{padding:0 16px 16px}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app nav-closed">
 <aside>
-  <h1 style="display:flex;align-items:center;gap:10px"><img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23b58cf0%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23e0577d%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22url%28%23g%29%22/%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2218%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222.5%22/%3E%3Cpath%20d%3D%22M18%2026c10%206%2018%206%2028%200M16%2034c11%207%2021%207%2032%200M21%2043c8%204%2014%204%2022%200M27%2016c-4%2010-4%2021%202%2031M38%2015c4%209%204%2021-1%2032%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20opacity%3D%22.85%22/%3E%3Cpath%20d%3D%22M46%2046c5%203%207%207%2012%207%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22/%3E%3C/svg%3E" alt="" width="32" height="32">Yarn Log</h1>
+  <h1 style="display:flex;align-items:center;gap:10px"><img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23b58cf0%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23e0577d%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22url%28%23g%29%22/%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2218%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222.5%22/%3E%3Cpath%20d%3D%22M18%2026c10%206%2018%206%2028%200M16%2034c11%207%2021%207%2032%200M21%2043c8%204%2014%204%2022%200M27%2016c-4%2010-4%2021%202%2031M38%2015c4%209%204%2021-1%2032%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20opacity%3D%22.85%22/%3E%3Cpath%20d%3D%22M46%2046c5%203%207%207%2012%207%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22/%3E%3C/svg%3E" alt="" width="32" height="32" draggable="false">Yarn Log<span class="themes" role="group" aria-label="Theme"><button type="button" data-act="theme" data-t="light" aria-label="Light mode" title="Light mode"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><button type="button" data-act="theme" data-t="dark" aria-label="Dark mode" title="Dark mode"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg></button></span><button class="ghost navclose" data-act="navclose" aria-label="Hide projects" title="Hide projects">&#8249;</button></h1>
   <div class="tools">
     <button class="pri" data-act="newp">+ New project</button>
     <button data-act="export">Download</button>
@@ -132,16 +206,24 @@ textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-rad
   <div class="plist" id="plist"></div>
 </aside>
 <main id="main"></main>
+<button class="navopen" data-act="navopen" aria-label="Show projects" title="Show projects">&#8250;</button>
 </div>
 <script>
 const KEY='yarnlog.v1';
-const T={ml:['Magic loop','ml'],ch:['Chain','ch'],sc:['Single stitch','sc'],hdc:['Half double','hdc'],dc:['Double stitch','dc'],tc:['Triple stitch','tc'],sl:['Slip stitch','sl st'],inc:['Increase','inc'],dec:['Decrease','dec']};
-const S={q:'',projects:[],sel:null,view:'edit',open:{},confirm:null};
+// the 3rd entry is an extra search alias. The key 'ml' is kept so saved projects keep working.
+const T={ml:['Magic ring','mr','magic loop ml'],ch:['Chain','ch'],sc:['Single stitch','sc'],hdc:['Half double','hdc'],dc:['Double stitch','dc'],tc:['Triple stitch','tc'],sl:['Slip stitch','sl'],
+  inc:['Increase','inc'],hdcinc:['Half double increase','hdc inc'],dcinc:['Double increase','dc inc'],tcinc:['Triple increase','tc inc'],
+  dec:['Decrease','dec'],hdcdec:['Half double decrease','hdc dec'],dcdec:['Double decrease','dc dec'],tcdec:['Triple decrease','tc dec']};
+const INC=new Set(['inc','hdcinc','dcinc','tcinc']),DEC=new Set(['dec','hdcdec','dcdec','tcdec']);
+const S={q:'',projects:[],sel:null,view:'edit',open:{},confirm:null,tab:{},cp:null};
 const $=s=>document.querySelector(s);
 const uid=()=>Math.random().toString(36).slice(2,10);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Old format: one whole-row repeat (r.rep). New format: r.reps = [{from,to,n}] = repeat steps from..to (1-based) n times.
-const migrate=p=>(p.rounds||[]).forEach(r=>{if(r.manual===undefined)r.manual=!!r.total;if(!r.step&&!Array.isArray(r.reps)){const n=Math.max(1,+r.rep||1);r.reps=n>1&&r.items&&r.items.length?[{from:1,to:r.items.length,n}]:[];delete r.rep}});
+const migrate0=p=>(p.rounds||[]).forEach(r=>{if(r.manual===undefined)r.manual=!!r.total;if(!r.step&&!Array.isArray(r.reps)){const n=Math.max(1,+r.rep||1);r.reps=n>1&&r.items&&r.items.length?[{from:1,to:r.items.length,n}]:[];delete r.rep}});
+// tabs: p.tabs=[{id,name}], each round/step carries r.tab. No tabs = one flat list.
+const migrate=p=>{migrate0(p);(p.rounds||[]).forEach(r=>{if(r.step)return;const m=/^R\s*(.*)$/i.exec(String(r.label??''));r.label='R'+(m?m[1]:r.label??'');const d=/\d+/.exec(String(r.total??''));r.total=d?d[0]:''});if(!Array.isArray(p.tabs))p.tabs=[];const rs=p.rounds||[];
+  if(p.tabs.length){const ids=new Set(p.tabs.map(t=>t.id));rs.forEach(r=>{if(!ids.has(r.tab))r.tab=p.tabs[0].id})}else rs.forEach(r=>{delete r.tab})};
 const IK='yarnlog.img.',dirtyImg=new Set();let saveT=0;
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(d))S.projects=d;S.projects.forEach(p=>{migrate(p);if(p.image)dirtyImg.add(p.id);else{try{p.image=localStorage.getItem(IK+p.id)||''}catch(e){}}})}catch(e){}}
 // photos are stored under their own keys (only rewritten when changed); text saves are batched
@@ -154,12 +236,12 @@ addEventListener('pagehide',()=>{if(saveT)writeNow()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&saveT)writeNow()});
 const cur=()=>S.projects.find(p=>p.id===S.sel);
 const fi=it=>it.group?'('+it.group.map(fi).join(', ')+')':`${it.n} ${T[it.t]?T[it.t][1]:it.t}`;
-const cnt=it=>it.skip?0:it.group?it.group.reduce((s,c)=>s+cnt(c),0):it.t==='inc'?2*it.n:it.t==='dec'?-it.n:it.n;
+const cnt=it=>it.skip?0:it.group?it.group.reduce((s,c)=>s+cnt(c),0):INC.has(it.t)?2*it.n:DEC.has(it.t)?-it.n:it.n;
 // derived-value cache, cleared by inval() after any data change
 let PV=null;const TC=new Map();
 const inval=()=>{PV=null;TC.clear()};
-const prevOf=r=>{if(!PV){PV=new Map();for(const p of S.projects){let last=null;for(const x of p.rounds)if(!x.step){PV.set(x,last);last=x}}}return PV.get(r)||null};
-const net=it=>it.skip?0:it.group?(it.group.every(c=>c.skip)?0:it.group.reduce((s,c)=>s+cnt(c),0)-1):(it.t==='inc'||it.t==='dec'||it.t==='ch'||it.t==='ml')?(it.t==='inc'?it.n:cnt(it)):0;
+const prevOf=r=>{if(!PV){PV=new Map();for(const p of S.projects){const last={};for(const x of p.rounds)if(!x.step){const k=x.tab||'';PV.set(x,last[k]||null);last[k]=x}}}return PV.get(r)||null};
+const net=it=>it.skip?0:it.group?(it.group.every(c=>c.skip)?0:it.group.reduce((s,c)=>s+cnt(c),0)-1):(INC.has(it.t)||DEC.has(it.t)||it.t==='ch'||it.t==='ml')?(INC.has(it.t)?it.n:cnt(it)):0;
 const rngs=r=>(r.reps||[]).map(g=>({a:Math.max(1,+g.from||1)-1,b:Math.min(r.items.length,+g.to||0)-1,n:Math.max(1,+g.n||1)})).filter(g=>g.b>=g.a);
 const mult=(rs,i)=>rs.reduce((m,g)=>i>=g.a&&i<=g.b?m*g.n:m,1);
 const crosses=rs=>rs.some((g,x)=>rs.some((h,y)=>x<y&&((g.a<h.a&&h.a<=g.b&&g.b<h.b)||(h.a<g.a&&g.a<=h.b&&h.b<g.b))));
@@ -177,7 +259,8 @@ function fmtItems(items,rs,lo,hi,top){
 const tot=r=>{let v=TC.get(r);if(v!==undefined)return v;const pv=prevOf(r),pt=pv?parseInt(totS(pv)):0,rs=rngs(r),own=r.items.reduce((s,it,i)=>s+cnt(it)*mult(rs,i),0);
   v=Math.max(0,pt>0?pt+r.items.reduce((s,it,i)=>s+net(it)*mult(rs,i),0):own);TC.set(r,v);return v};
 const autoT=r=>{const t=tot(r);return t?t+'sc':''};
-const totS=r=>r.manual?r.total:autoT(r);
+const totS=r=>r.manual?(r.total?r.total+'sc':''):autoT(r);
+const autoN=r=>{const t=tot(r);return t?String(t):''};
 const col=c=>/^#[0-9a-f]{3,8}$/i.test(c||'')?c:'#999999';
 const stepText=r=>r.type==='color'?'Color change: '+(r.name||r.color):r.type==='hook'?'Hook change: '+(r.size||'?'):r.text||'';
 const stepH=r=>r.type==='color'?`<span class="sw" style="background:${col(r.color)}"></span><b>Color change</b> ${esc(r.name||r.color)}`:r.type==='hook'?`<b>Hook change</b> to ${esc(r.size||'?').replace(/\d+/g,'<b>$&</b>')}`:esc(r.text||'(empty note)');
@@ -186,27 +269,27 @@ const fr=r=>{if(r.step)return stepText(r);let s=r.label+' '+fmtItems(r.items,rng
 const frH=r=>fr(r).split(/(\d+)/).map((x,i)=>i%2?`<b>${esc(x)}</b>`:esc(x)).join('');
 const PH='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b58cf0"/><stop offset="1" stop-color="#e0577d"/></linearGradient></defs><rect width="64" height="64" fill="url(#g)"/><circle cx="32" cy="32" r="17" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M18 26c10 6 18 6 28 0M16 34c11 7 21 7 32 0M21 43c8 4 14 4 22 0M27 17c-4 10-4 20 2 30M38 16c4 9 4 20-1 31" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M46 46c5 3 7 7 12 7" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>');
 const allIt=it=>it.group?it.group.flatMap(allIt):[it];
-const roundHas=(r,q)=>!r.step&&r.items.flatMap(allIt).some(i=>T[i.t]&&(T[i.t][0]+' '+T[i.t][1]+' '+i.t).toLowerCase().includes(q));
+const roundHas=(r,q)=>!r.step&&r.items.flatMap(allIt).some(i=>T[i.t]&&(T[i.t].join(' ')+' '+i.t).toLowerCase().includes(q));
 const match=(p,q)=>!q||(p.title||'untitled').toLowerCase().includes(q)||p.rounds.some(r=>roundHas(r,q));
 const prog=p=>{const rs=p.rounds.filter(r=>!r.step),n=rs.length,d=rs.filter(r=>p.build.done[r.id]).length;return{n,d,pct:n?Math.round(d/n*100):0}};
 
 function renderList(){
   const q=S.q.trim().toLowerCase(),L=S.projects.filter(p=>match(p,q));
   $('#plist').innerHTML=L.length?L.map(p=>{
-    const b=p.build,pr=b&&prog(p),open=S.open[p.id];
+    const b=p.build,pr=b&&prog(p),open=S.open[p.id],here=S.view==='track'&&S.sel===p.id;
     return `<div class="prow ${p.id===S.sel?'sel':''}"><button class="chev ${b?'':'none'} ${open?'open':''}" data-act="toggle" data-id="${p.id}" aria-label="Show build">&#9660;</button><img class="th" src="${p.image||PH}" alt=""><button class="name" data-act="sel" data-id="${p.id}">${esc(p.title||'Untitled')}</button></div>`+
-    (b&&open?`<div class="bld"><b>Building</b> &middot; ${pr.d}/${pr.n} rounds<div class="bar"><i style="width:${pr.pct}%"></i></div><div class="btns"><button class="pri" data-act="track" data-id="${p.id}">Continue</button><button data-act="complete" data-id="${p.id}">Complete</button></div></div>`:'');
+    (b&&open?`<div class="bld"><b>Building</b> &middot; ${pr.d}/${pr.n} rounds<div class="bar"><i style="width:${pr.pct}%"></i></div>${p.tabs.length?`<div class="chips">${p.tabs.map(t=>{const x=tprog(p,t.id);return `<button data-act="trackt" data-id="${p.id}" data-t="${t.id}">${esc(t.name)} ${x.d}/${x.n}</button>`}).join('')}</div>`:''}<div class="btns">${here?'':`<button class="pri" data-act="track" data-id="${p.id}">Continue</button>`}<button data-act="complete" data-id="${p.id}">${pr.n&&pr.d===pr.n?'Complete':'Close'}</button></div></div>`:'');
   }).join(''):`<div style="color:var(--mute);font-size:14px">${q?'No project uses "'+esc(S.q)+'".':'No projects yet.'}</div>`;
 }
 
 const OPTH=Object.fromEntries(Object.keys(T).concat('_').map(s=>[s,Object.entries(T).map(([k,v])=>`<option value="${k}"${k===s?' selected':''}>${v[0]}</option>`).join('')]));
 function itemRow(it,a,lead,inrep){
-  return `<div class="it ${it.skip?'skip':''} ${inrep?'inrep':''}" ${a}>${lead||''}<input type="number" min="1" value="${it.n}" data-f="n" aria-label="Amount"><select data-f="t" aria-label="Stitch type">${OPTH[it.t]||OPTH._}</select><label class="sk"><input type="checkbox" data-f="skip" ${it.skip?'checked':''}>Don't count</label><button class="ghost dng" data-act="${a.includes('data-c')?'delchild':'delitem'}" ${a} aria-label="Remove">&times;</button></div>`;
+  return `<div class="it ${it.skip?'skip':''} ${inrep?'inrep':''}" ${a}${a.includes('data-c')?'':' data-top'}>${lead||''}<input type="number" min="1" value="${it.n}" data-f="n" aria-label="Amount"><select data-f="t" aria-label="Stitch type">${OPTH[it.t]||OPTH._}</select><label class="sk"><input type="checkbox" data-f="skip" ${it.skip?'checked':''}>Don't count</label><button class="ghost dng" data-act="${a.includes('data-c')?'delchild':'delitem'}" ${a} aria-label="Remove">&times;</button></div>`;
 }
 const STEPN={color:'Color change',hook:'Hook change',note:'Note'};
 const insBar=at=>`<div class="ins"><button data-act="addstep" data-type="color" data-at="${at}">+ color</button><button data-act="addstep" data-type="hook" data-at="${at}">+ hook</button><button data-act="addstep" data-type="note" data-at="${at}">+ note</button></div>`;
 function stepHTML(r,ri){
-  const body=r.type==='color'?`<div class="row"><input type="color" value="${col(r.color)}" data-f="color" data-r="${ri}" aria-label="Color"><input style="flex:1" placeholder="Color name (optional)" value="${esc(r.name)}" data-f="name" data-r="${ri}"></div>`
+  const body=r.type==='color'?`<div class="row"><button type="button" class="sbtn" style="background:${col(r.color)}" data-act="cp" data-r="${ri}" aria-label="Choose color" aria-expanded="${S.cp===r.id}"></button><input style="flex:1" placeholder="Color name (optional)" value="${esc(r.name)}" data-f="name" data-r="${ri}"></div>${S.cp===r.id?cpHTML(r,ri):''}`
    :r.type==='hook'?`<div class="row"><input placeholder="Hook size, e.g. 3.5 mm" value="${esc(r.size)}" data-f="size" data-r="${ri}" style="font-weight:800"></div>`
    :`<textarea rows="3" placeholder="Explain the next step in more detail..." data-f="text" data-r="${ri}">${esc(r.text)}</textarea>`;
   return `<div class="round step" data-r="${ri}"><div class="top"><b>${STEPN[r.type]}</b><button class="ghost" data-act="up" data-r="${ri}" aria-label="Move up">&uarr;</button><button class="ghost" data-act="dn" data-r="${ri}" aria-label="Move down">&darr;</button><button class="ghost dng" data-act="delround" data-r="${ri}">Delete</button></div>${body}</div>`;
@@ -216,38 +299,39 @@ const leadH=(rs,ii)=>`<span class="stn" title="Step ${ii+1}">${ii+1}</span>`+rs.
 function refreshLeads(r,ri){const rs=rngs(r);r.items.forEach((_,ii)=>{const ld=document.querySelector(`[data-ld="${ri}-${ii}"]`);if(!ld)return;ld.innerHTML=leadH(rs,ii);const box=ld.closest('.it,.grp');if(box)box.classList.toggle('inrep',rs.some(g=>ii>=g.a&&ii<=g.b))})}
 function roundHTML(r,ri){
   if(r.step)return stepHTML(r,ri);
-  const rs=rngs(r),cov=ii=>rs.filter(g=>ii>=g.a&&ii<=g.b),lead=ii=>`<span class="ld" data-ld="${ri}-${ii}">${leadH(rs,ii)}</span>`;
+  const rs=rngs(r),cov=ii=>rs.filter(g=>ii>=g.a&&ii<=g.b),lead=ii=>`<button type="button" class="grab" title="Drag to reorder" aria-label="Drag to reorder (or use the up and down arrow keys)">&#8942;&#8942;</button><span class="ld" data-ld="${ri}-${ii}">${leadH(rs,ii)}</span>`;
   const items=r.items.map((it,ii)=>it.group?
-    `<div class="grp ${cov(ii).length?'inrep':''}"><small>${lead(ii)} All of these go into one stitch:</small>${it.group.map((c,ci)=>itemRow(c,`data-r="${ri}" data-i="${ii}" data-c="${ci}"`)).join('')}<div class="row"><button data-act="addchild" data-r="${ri}" data-i="${ii}">+ Add to group</button><button class="dng" data-act="delitem" data-r="${ri}" data-i="${ii}">Remove group</button></div></div>`
+    `<div class="grp ${cov(ii).length?'inrep':''}" data-top><small>${lead(ii)} All of these go into one stitch:</small>${it.group.map((c,ci)=>itemRow(c,`data-r="${ri}" data-i="${ii}" data-c="${ci}"`)).join('')}<div class="row"><button data-act="addchild" data-r="${ri}" data-i="${ii}">+ Add to group</button><button class="dng" data-act="delitem" data-r="${ri}" data-i="${ii}">Remove group</button></div></div>`
     :itemRow(it,`data-r="${ri}" data-i="${ii}"`,lead(ii),cov(ii).length)).join('');
   const reps=`<div class="reps">${(r.reps||[]).map((g,k)=>{const d=`data-r="${ri}" data-k="${k}"`;return `<div class="rp"><span>Repeat steps</span><input type="number" min="1" max="${r.items.length}" value="${g.from}" data-f="rfrom" ${d} aria-label="Repeat from step"><span>to</span><input type="number" min="1" max="${r.items.length}" value="${g.to}" data-f="rto" ${d} aria-label="Repeat to step"><span>&times;</span><input type="number" min="1" value="${g.n}" data-f="rn" ${d} aria-label="Number of repeats"><button class="ghost dng" data-act="delrep" ${d} aria-label="Remove repeat">&times;</button></div>`}).join('')}<div class="row"><button data-act="addrep" data-r="${ri}">+ Repeat steps</button><span class="warn" data-rw="${ri}">${repWarn(r)}</span></div>${(r.reps||[]).length?'':'<div class="hint">Repeat a range of steps, e.g. steps 2 to 3 &times; 6.</div>'}</div>`;
   const hit=S.q.trim()&&roundHas(r,S.q.trim().toLowerCase());
-  return `<div class="round ${hit?'hit':''}" data-r="${ri}"><div class="top"><input class="lbl" value="${esc(r.label)}" data-f="label" data-r="${ri}" aria-label="Round label"><span style="flex:1"></span><button class="ghost" data-act="up" data-r="${ri}" aria-label="Move up">&uarr;</button><button class="ghost" data-act="dn" data-r="${ri}" aria-label="Move down">&darr;</button><button class="ghost dng" data-act="delround" data-r="${ri}">Delete round</button></div>
+  return `<div class="round ${hit?'hit':''}" data-r="${ri}"><div class="top"><span class="lblw"><b>R</b><input class="lbl" inputmode="numeric" value="${esc(String(r.label).replace(/^R/i,''))}" data-f="label" data-r="${ri}" aria-label="Round number"></span><span style="flex:1"></span><button class="ghost" data-act="up" data-r="${ri}" aria-label="Move up">&uarr;</button><button class="ghost" data-act="dn" data-r="${ri}" aria-label="Move down">&darr;</button><button class="ghost dng" data-act="delround" data-r="${ri}">Delete round</button></div>
   ${items}
   <div class="row"><button data-act="additem" data-r="${ri}">+ Stitch</button><button data-act="addgroup" data-r="${ri}">+ Group in one stitch</button></div>
   ${reps}
-  <div class="meta"><label>Total<input style="width:90px;font-weight:800" value="${esc(r.manual?r.total:autoT(r))}" data-f="total" data-r="${ri}" data-tot="${ri}" ${r.manual?'':'disabled'}></label><label class="chk"><input type="checkbox" data-f="manual" data-r="${ri}" ${r.manual?'checked':''}>Override</label><input class="note" placeholder="Note, e.g. color change on last stitch (blue)" value="${esc(r.note)}" data-f="note" data-r="${ri}"></div>
+  <div class="meta"><label>Total<span class="tot"><input inputmode="numeric" style="width:64px;font-weight:800" value="${esc(r.manual?r.total:autoN(r))}" data-f="total" data-r="${ri}" data-tot="${ri}" ${r.manual?'':'disabled'}><b>sc</b></span></label><label class="chk"><input type="checkbox" data-f="manual" data-r="${ri}" ${r.manual?'checked':''}>Override</label><input class="note" placeholder="Note, e.g. color change on last stitch (blue)" value="${esc(r.note)}" data-f="note" data-r="${ri}"></div>
   <div class="prev" data-prev="${ri}">${frH(r)}</div></div>`;
 }
 
-function renderMain(){inval();const m=$('#main'),ob=m.querySelector('.mb'),k=S.sel+'|'+S.view,keep=ob&&m.dataset.k===k?ob.scrollTop:0;renderMain0();m.dataset.k=k;const nb=m.querySelector('.mb');if(nb)nb.scrollTop=keep}
+function renderMain(){inval();const m=$('#main'),ob=m.querySelector('.mb'),k=S.sel+'|'+S.view+'|'+(S.tab[S.sel]||''),keep=ob&&m.dataset.k===k?ob.scrollTop:0;renderMain0();m.dataset.k=k;const nb=m.querySelector('.mb');if(nb)nb.scrollTop=keep}
 function renderMain0(){
   const p=cur(),m=$('#main');
-  if(!p){m.innerHTML='<div class="mb"><div class="empty"><h2>Pick a project or start a new one</h2><p>Write patterns round by round, then build them to tick off as you crochet.</p></div></div>';return}
+  if(!p){m.innerHTML='<div class="mb"><div class="empty"><h2>Pick a project or start a new one</h2><p>Write patterns round by round, then build them to tick off as you crochet.</p><p class="hint hint-m">Swipe right to open your projects.</p><p class="hint hint-d">Open your projects with the &#8250; tab on the left edge.</p></div></div>';return}
+  const ta=tabOf(p);
   if(S.view==='track'&&p.build){
     const pr=prog(p);
-    m.innerHTML=`<div class="mh"><div class="row" style="justify-content:space-between"><h2 class="serif" style="margin:0">${esc(p.title||'Untitled')}</h2><div class="row"><button data-act="edit">Edit pattern</button><button class="pri" data-act="complete" data-id="${p.id}">Complete project</button></div></div>
-    <p id="pgt">${pr.d} of ${pr.n} rounds done</p><div class="bar bar-lg"><i id="pgb" style="width:${pr.pct}%"></i></div></div><div class="mb">
-    ${p.rounds.map((r,ri)=>r.step?`<div class="info"><span class="star">*</span><div class="prev sp">${stepH(r)}</div></div>`:`<label class="trk ${p.build.done[r.id]?'done':''}"><input type="checkbox" data-act="tick" data-r="${ri}" ${p.build.done[r.id]?'checked':''}><div class="prev">${frH(r)}</div></label>`).join('')||'<p>This pattern has no rounds yet.</p>'}
-    <details style="color:var(--mute);margin-top:16px"><summary>Abbreviations</summary><p>${Object.values(T).map(v=>v[1]+' = '+v[0].toLowerCase()).join(', ')}</p></details></div>`;
+    m.innerHTML=`<div class="mh"><div class="row" style="justify-content:space-between"><h2 class="serif" style="margin:0">${esc(p.title||'Untitled')}</h2><div class="row"><button data-act="edit">Edit pattern</button><button class="pri ${pr.n&&pr.d===pr.n?'glow':''}" id="cbtn" data-act="complete" data-id="${p.id}">${pr.n&&pr.d===pr.n?'Complete project':'Close project'}</button></div></div>
+    <p id="pgt">${pgText(pr)}</p><div class="bar bar-lg"><i id="pgb" style="width:${pr.pct}%"></i></div>${p.tabs.length?tabBar(p,ta,'track'):''}</div><div class="mb">
+    ${p.rounds.map((r,ri)=>(p.tabs.length&&r.tab!==ta)?'':r.step?`<div class="info"><span class="star">*</span><div class="prev sp">${stepH(r)}</div></div>`:`<label class="trk ${p.build.done[r.id]?'done':''}"><input type="checkbox" data-act="tick" data-r="${ri}" ${p.build.done[r.id]?'checked':''}><div class="prev">${frH(r)}</div></label>`).join('')||'<p>This pattern has no rounds yet.</p>'}
+    <details style="color:var(--mute);margin-top:16px"><summary style="cursor:pointer">Abbreviations</summary><div class="abbr">${Object.values(T).map(v=>`<div><b>${esc(v[1])}</b><span>${esc(v[0])}</span></div>`).join('')}</div></details></div>`;
     return;
   }
   m.innerHTML=`<div class="mh"><div class="head"><div class="img" data-act="img" title="Change photo"><img src="${p.image||PH}" alt=""><span>${p.image?'Change':'Add photo'}</span></div>
   <div style="flex:1;min-width:200px"><input class="title" value="${esc(p.title)}" placeholder="Project title" data-f="title">
-  <div class="row" style="margin-top:10px"><button class="pri" data-act="${p.build?'track':'build'}" data-id="${p.id}">${p.build?'Continue building':'Build this pattern'}</button>${p.image?'<button data-act="delimg">Remove photo</button>':''}<button class="dng" data-act="delp" data-id="${p.id}">${S.confirm===p.id?'Click again to delete':'Delete project'}</button></div></div></div></div>
+  <div class="row" style="margin-top:10px"><button class="pri" data-act="${p.build?'track':'build'}" data-id="${p.id}">${p.build?'Continue building':'Build this pattern'}</button>${p.image?'<button data-act="delimg">Remove photo</button>':''}<button class="dng" data-act="delp" data-id="${p.id}">Delete project</button></div></div></div></div>
   <div class="mb"><input type="file" id="imgin" accept="image/*" hidden>
-  <h2 class="serif pt">Pattern</h2>
-  ${p.rounds.map((r,i)=>insBar(i)+roundHTML(r,i)).join('')+insBar(p.rounds.length)}
+  <div class="pt"><div class="pth"><h2 class="serif">Pattern</h2><button class="ghost sub" data-act="tabson" title="${p.tabs.length?'Merge the tabs back into one list':'Split this pattern into parts, e.g. body, arms, head'}">${p.tabs.length?'Turn off tabs':'&#9638; Use tabs'}</button></div>${p.tabs.length?tabBar(p,ta,'edit'):''}</div>${p.tabs.length>1?tabTools(p,ta):''}
+  ${p.rounds.map((r,i)=>(p.tabs.length&&r.tab!==ta)?'':insBar(i)+roundHTML(r,i)).join('')+insBar(p.rounds.length)}
   <button class="pri" data-act="addround">+ Add round</button></div>`;
 }
 function render(){renderList();renderMain()}
@@ -258,18 +342,27 @@ function refreshDerived(p,from){
   for(let i=from;i<p.rounds.length;i++){const r=p.rounds[i],a=E['p'+i],b=E['w'+i],c=E['t'+i];
     if(a){const h=frH(r);if(a._h!==h){a.innerHTML=h;a._h=h}}
     if(b)b.textContent=repWarn(r);
-    if(c&&!r.manual){const v=autoT(r);if(c.value!==v)c.value=v}}
+    if(c&&!r.manual){const v=autoN(r);if(c.value!==v)c.value=v}}
 }
 function getIt(el){const p=cur(),r=p.rounds[+el.dataset.r];let it=r.items[+el.dataset.i];if(el.dataset.c!==undefined)it=it.group[+el.dataset.c];return it}
 let qT=0;$('#q').addEventListener('input',e=>{S.q=e.target.value;renderList();clearTimeout(qT);qT=setTimeout(()=>{if(cur()&&S.view==='edit')renderMain()},180)});
 document.addEventListener('input',e=>{
   const el=e.target,f=el.dataset.f,p=cur();if(!f||!p)return;
   if(f==='title'){p.title=el.value;renderList();save();return}
+  if(f==='tabname'){const t=p.tabs.find(x=>x.id===el.dataset.t);if(t){t.name=el.value;el.style.width=Math.max(4,el.value.length+1)+'ch';renderList();save()}return}
+  if(f==='cr'||f==='cg'||f==='cb'||f==='chex'||f==='color'){
+    const ri=+el.dataset.r,r=p.rounds[ri];if(!r)return;let hex;
+    if(f==='chex'){let v=el.value.trim();if(v[0]!=='#')v='#'+v;if(/^#[0-9a-f]{3}$/i.test(v))v='#'+[...v.slice(1)].map(c=>c+c).join('');if(!/^#[0-9a-f]{6}$/i.test(v))return;hex=v.toLowerCase()}
+    else if(f==='color')hex=el.value.toLowerCase();
+    else{if(el.value==='')return;const c=toRgb(r.color);c['rgb'.indexOf(f[1])]=Math.max(0,Math.min(255,Math.round(+el.value)||0));hex='#'+c.map(hex2).join('')}
+    setColor(ri,hex,el);return}
   const row=el.closest('.it'),ri=+(row||el).dataset.r,rr=p.rounds[ri];
-  if(f==='manual'){rr.manual=el.checked;if(rr.manual&&!rr.total)rr.total=autoT(rr);save();renderMain();return}
+  if(f==='manual'){rr.manual=el.checked;if(rr.manual&&!rr.total)rr.total=autoN(rr);save();renderMain();return}
   const RK={rfrom:'from',rto:'to',rn:'n'};
   if(RK[f])rr.reps[+el.dataset.k][RK[f]]=Math.max(1,+el.value||1);
   else if(row){const it=getIt(row);if(f==='n')it.n=Math.max(1,+el.value||1);else if(f==='skip')it.skip=el.checked;else it.t=el.value}
+  else if(f==='label'){const v=el.value.replace(/[^\d,\-]/g,'');if(v!==el.value)el.value=v;rr.label='R'+v}
+  else if(f==='total'){const v=el.value.replace(/\D/g,'');if(v!==el.value)el.value=v;rr.total=v}
   else rr[f]=el.value;
   if(RK[f])refreshLeads(rr,ri);
   refreshDerived(p,ri);
@@ -278,33 +371,58 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
   const el=e.target;if(el.id==='imgin'&&el.files[0])return setImg(el.files[0]);
+  if(el.dataset.f==='tabname'){const p=cur(),t=p&&p.tabs.find(x=>x.id===el.dataset.t);if(t&&!t.name.trim()){t.name='Part '+(p.tabs.indexOf(t)+1);el.value=t.name;renderList();save()}return}
+  if(/^(c[rgb]|chex)$/.test(el.dataset.f||'')){const p=cur(),r=p&&p.rounds[+el.dataset.r];if(r){const c=toRgb(r.color);el.value=el.dataset.f==='chex'?'#'+c.map(hex2).join(''):c['rgb'.indexOf(el.dataset.f[1])]}return}
   if(el.id==='imp'&&el.files[0])return importFile(el.files[0]);
-  if(el.dataset.act==='tick'){const p=cur(),r=p.rounds[+el.dataset.r];p.build.done[r.id]=el.checked;el.closest('.trk').classList.toggle('done',el.checked);const pr=prog(p);$('#pgt').textContent=`${pr.d} of ${pr.n} rounds done`;$('#pgb').style.width=pr.pct+'%';save();renderList()}
+  if(el.dataset.act==='tick'){const p=cur(),r=p.rounds[+el.dataset.r];p.build.done[r.id]=el.checked;el.closest('.trk').classList.toggle('done',el.checked);const pr=prog(p),fin=pr.n>0&&pr.d===pr.n;
+    $('#pgt').textContent=pgText(pr);$('#pgb').style.width=pr.pct+'%';const cb=$('#cbtn');if(cb){cb.classList.toggle('glow',fin);cb.textContent=fin?'Complete project':'Close project'}
+    if(p.tabs.length){const tb=document.querySelector('#main .tabs');if(tb)tb.outerHTML=tabBar(p,tabOf(p),'track')}
+    if(el.checked){if(fin){pop(el,70);buzz([40,30,80])}else if(p.tabs.length&&r.tab){const x=tprog(p,r.tab);if(x.n&&x.d===x.n){pop(el,28);buzz(30)}}}
+    save();renderList()}
 });
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-act]');if(!el||el.tagName==='INPUT')return;
   const a=el.dataset.act,p=cur(),id=el.dataset.id,r=el.dataset.r;
-  if(a==='newp'){const n={id:uid(),title:'',image:'',rounds:[],build:null};S.projects.unshift(n);S.sel=n.id;S.view='edit';save();render();document.querySelector('.title')?.focus();return}
-  if(a==='sel'){S.sel=id;S.view='edit';S.confirm=null;render();return}
+  if(a==='newp'){const n={id:uid(),title:'',image:'',rounds:[],tabs:[],build:null};S.projects.unshift(n);S.sel=n.id;S.view='edit';if(isMobile())setNav(false);save();render();document.querySelector('.title')?.focus();return}
+  if(a==='sel'){S.sel=id;S.view='edit';S.confirm=null;if(isMobile())setNav(false);render();return}
   if(a==='toggle'){S.open[id]=!S.open[id];renderList();return}
-  if(a==='track'){S.sel=id;S.view='track';render();return}
+  if(a==='theme'){setTheme(el.dataset.t);return}
+  if(a==='navclose'){setNav(false);return}
+  if(a==='navopen'){setNav(true);return}
+  if(a==='track'){S.sel=id;S.view='track';setNav(false);render();return}
+  if(a==='trackt'){S.sel=id;S.tab[id]=el.dataset.t;S.view='track';setNav(false);render();return}
+  if(a==='celeok'){el.closest('.cele')?.remove();return}
   if(a==='edit'){S.view='edit';render();return}
-  if(a==='complete'){const q=S.projects.find(x=>x.id===id);q.build=null;if(S.sel===id)S.view='edit';save();render();return}
+  if(a==='complete'){const q=S.projects.find(x=>x.id===id);if(!q||!q.build)return;const pr=prog(q);
+    const fin=()=>{const st={n:pr.n,ms:Date.now()-(q.build.started||Date.now())};q.build=null;q.completed=Date.now();if(S.sel===id)S.view='edit';save();render();celebrate(q,st)};
+    if(pr.n>0&&pr.d===pr.n)fin();else{const nm=q.title||'Untitled',prg=pr.d?` The ${pr.d} of ${pr.n} rounds you ticked will be reset.`:'';
+      ask(`Close the build of "${nm}"?${prg} The pattern itself stays as it is, and you can start building again any time.`,'Close build').then(ok=>{if(!ok)return;q.build=null;if(S.sel===id)S.view='edit';save();render()})}return}
   if(a==='export'){const b=new Blob([JSON.stringify({app:'yarnlog',version:1,projects:S.projects},null,1)],{type:'application/json'});const u=URL.createObjectURL(b),l=document.createElement('a');l.href=u;l.download='crochet-projects.json';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);return}
   if(a==='import'){$('#imp').click();return}
   if(!p)return;
-  if(a==='delp'){if(S.confirm!==id){S.confirm=id;renderMain();return}dirtyImg.add(id);S.projects=S.projects.filter(x=>x.id!==id);S.sel=null;S.confirm=null}
-  else if(a==='build'){p.build={done:{},started:Date.now()};S.open[p.id]=true;S.view='track'}
+  if(a==='delp'){const nm=p.title||'Untitled';ask(`Delete the project "${nm}"? The pattern, photo and build progress will be removed for good.`,'Delete project').then(ok=>{if(!ok)return;dirtyImg.add(id);S.projects=S.projects.filter(x=>x.id!==id);S.sel=null;S.confirm=null;if(isMobile())setNav(true);save();render()});return}
+  else if(a==='build'){delete p.completed;p.build={done:{},started:Date.now()};S.open[p.id]=true;S.view='track';setNav(false)}
   else if(a==='img'){$('#imgin').click();return}
-  else if(a==='delimg'){p.image='';dirtyImg.add(p.id)}
-  else if(a==='addstep')p.rounds.splice(+el.dataset.at,0,{id:uid(),step:1,type:el.dataset.type,color:'#e0577d',name:'',size:'',text:''});
-  else if(a==='addround')p.rounds.push({id:uid(),label:'R'+(p.rounds.filter(x=>!x.step).length+1),items:[{n:1,t:'sc'}],reps:[],total:'',manual:false,note:''});
+  else if(a==='delimg'){ask('Remove this photo from the project?','Remove').then(ok=>{if(ok){p.image='';dirtyImg.add(p.id);save();render()}});return}
+  else if(a==='addstep')p.rounds.splice(+el.dataset.at,0,{id:uid(),step:1,type:el.dataset.type,color:'#e0577d',name:'',size:'',text:'',...(p.tabs.length?{tab:tabOf(p)}:{})});
+  else if(a==='addround'){const tb=p.tabs.length?tabOf(p):null;p.rounds.push({id:uid(),label:'R'+nextNum(p,tb),items:[{n:1,t:'ch'}],reps:[],total:'',manual:false,note:'',...(tb?{tab:tb}:{})})}
   else if(a==='delround')p.rounds.splice(+r,1);
-  else if(a==='up'&&+r>0)p.rounds.splice(+r-1,0,p.rounds.splice(+r,1)[0]);
-  else if(a==='dn'&&+r<p.rounds.length-1)p.rounds.splice(+r+1,0,p.rounds.splice(+r,1)[0]);
-  else if(a==='additem')p.rounds[+r].items.push({n:1,t:'sc'});
-  else if(a==='addgroup')p.rounds[+r].items.push({group:[{n:1,t:'dc'}]});
-  else if(a==='addchild')p.rounds[+r].items[+el.dataset.i].group.push({n:1,t:'sc'});
+  else if(a==='up'||a==='dn'){const d=a==='up'?-1:1,rd=p.rounds[+r];let j=+r+d;while(j>=0&&j<p.rounds.length&&p.rounds[j].tab!==rd.tab)j+=d;if(j>=0&&j<p.rounds.length){p.rounds.splice(+r,1);p.rounds.splice(j,0,rd)}}
+  
+  else if(a==='cp'){const id2=p.rounds[+r].id;S.cp=S.cp===id2?null:id2}
+  else if(a==='pickcol')p.rounds[+r].color=el.dataset.c;
+  else if(a==='tabson'){
+    if(!p.tabs.length){const t={id:uid(),name:'Part 1'};p.tabs=[t];p.rounds.forEach(x=>{x.tab=t.id});S.tab[p.id]=t.id}
+    else{ask('Turn off tabs? All parts are merged back into one list, in tab order.','Turn off').then(ok=>{if(!ok)return;mergeTabs(p);save();render()});return}}
+  else if(a==='tabadd'){const t={id:uid(),name:'Part '+(p.tabs.length+1)};p.tabs.push(t);S.tab[p.id]=t.id}
+  else if(a==='tabsel')S.tab[p.id]=el.dataset.t;
+  else if(a==='tabl'||a==='tabr'){const i=p.tabs.findIndex(t=>t.id===tabOf(p)),j=i+(a==='tabl'?-1:1);if(j>=0&&j<p.tabs.length){const t=p.tabs[i];p.tabs[i]=p.tabs[j];p.tabs[j]=t}}
+  else if(a==='tabdel'){const tid=tabOf(p),t=p.tabs.find(x=>x.id===tid),n=p.rounds.filter(x=>x.tab===tid).length;
+    const go=()=>{p.rounds.filter(x=>x.tab===tid).forEach(x=>{if(p.build)delete p.build.done[x.id]});p.rounds=p.rounds.filter(x=>x.tab!==tid);p.tabs=p.tabs.filter(x=>x.id!==tid);delete S.tab[p.id];save();render()};
+    if(n)ask(`Delete "${t.name}" and its ${n} item${n>1?'s':''}?`).then(ok=>{if(ok)go()});else go();return}
+  else if(a==='additem')p.rounds[+r].items.push({n:1,t:'ch'});
+  else if(a==='addgroup')p.rounds[+r].items.push({group:[{n:1,t:'ch'}]});
+  else if(a==='addchild')p.rounds[+r].items[+el.dataset.i].group.push({n:1,t:'ch'});
   else if(a==='addrep'){const rd=p.rounds[+r];rd.reps.push({from:1,to:rd.items.length||1,n:2})}
   else if(a==='delrep')p.rounds[+r].reps.splice(+el.dataset.k,1);
   else if(a==='delitem'){const rd=p.rounds[+r];rd.items.splice(+el.dataset.i,1);dropStep(rd,+el.dataset.i)}
@@ -335,6 +453,142 @@ function importFile(file){
   }catch(e){$('#warn').textContent='That file is not a valid Yarn Log backup.'}$('#imp').value=''};
   rd.readAsText(file);
 }
+// next round number = previous round's number + 1 (within the same tab), not the count of rounds
+function nextNum(p,tb){const rs=p.rounds.filter(x=>!x.step&&(!tb||x.tab===tb)),l=rs[rs.length-1],m=l&&/(\d+)\D*$/.exec(String(l.label));return m?+m[1]+1:rs.length+1}
+/* ---------- tabs ---------- */
+const tabOf=p=>p.tabs.length?(p.tabs.some(t=>t.id===S.tab[p.id])?S.tab[p.id]:p.tabs[0].id):null;
+const tprog=(p,id)=>{const rs=p.rounds.filter(r=>!r.step&&r.tab===id);return{n:rs.length,d:rs.filter(r=>p.build&&p.build.done[r.id]).length}};
+const pgText=pr=>pr.n&&pr.d===pr.n?`All ${pr.n} rounds done! \u{1F389}`:`${pr.d} of ${pr.n} rounds done`;
+function tabBar(p,ta,mode){
+  const q=S.q.trim().toLowerCase();
+  return `<div class="tabs" role="tablist">`+p.tabs.map(t=>{
+    const on=t.id===ta;
+    if(mode==='edit'){
+      if(on)return `<span class="tab on" role="tab" aria-selected="true"><input class="tin" value="${esc(t.name)}" data-f="tabname" data-t="${t.id}" style="width:${Math.max(4,t.name.length+1)}ch" aria-label="Tab name (tap to rename)" title="Tap to rename"></span>`;
+      const hit=q&&p.rounds.some(r=>r.tab===t.id&&roundHas(r,q));
+      return `<button class="tab ${hit?'hit':''}" role="tab" aria-selected="false" data-act="tabsel" data-t="${t.id}" title="${esc(t.name)}"><span class="tn">${esc(t.name)||'Untitled'}</span></button>`}
+    const x=tprog(p,t.id),fin=x.n>0&&x.d===x.n;
+    return `<button class="tab ${on?'on':''} ${fin?'fin':''}" role="tab" aria-selected="${on}" data-act="tabsel" data-t="${t.id}">${fin?'&#10003; ':''}<span class="tn" title="${esc(t.name)}">${esc(t.name)}</span> <small>${x.d}/${x.n}</small></button>`
+  }).join('')+(mode==='edit'?`<button class="tab add" data-act="tabadd" aria-label="Add tab" title="Add a tab">+</button>`:'')+`</div>`;
+}
+function tabTools(p,ta){const i=p.tabs.findIndex(t=>t.id===ta);
+  return `<div class="tabtools"><button class="ghost" data-act="tabl" ${i<1?'disabled':''}>&larr; Move</button><button class="ghost" data-act="tabr" ${i>=p.tabs.length-1?'disabled':''}>Move &rarr;</button><button class="ghost dng" data-act="tabdel">Delete tab</button></div>`}
+function mergeTabs(p){const ord=new Map(p.tabs.map((t,i)=>[t.id,i]));
+  p.rounds=p.rounds.map((r,i)=>[r,i]).sort((a,b)=>ord.get(a[0].tab)-ord.get(b[0].tab)||a[1]-b[1]).map(x=>x[0]);
+  p.rounds.forEach(r=>{delete r.tab});p.tabs=[];delete S.tab[p.id]}
+
+/* ---------- colors: this project's own colors + exact RGB / hex entry ---------- */
+const hex2=n=>n.toString(16).padStart(2,'0');
+const toRgb=h=>{h=col(h);h=h.length===4?'#'+[...h.slice(1)].map(c=>c+c).join(''):h.slice(0,7);return[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)||0)};
+// suggestions = colors of the other color-change steps still in this project (delete the step and it disappears)
+const projColors=(p,ex)=>{const seen=new Set(),out=[];for(const x of p.rounds)if(x.step&&x.type==='color'&&x.id!==ex){const c='#'+toRgb(x.color).map(hex2).join('');if(!seen.has(c)){seen.add(c);out.push({c,name:x.name})}}return out};
+function cpHTML(r,ri){
+  const [R,G,B]=toRgb(r.color),hex='#'+[R,G,B].map(hex2).join(''),used=projColors(cur(),r.id),d=`data-r="${ri}"`;
+  const num=(l,f,v)=>`<label>${l}<input type="number" inputmode="numeric" min="0" max="255" value="${v}" data-f="${f}" ${d}></label>`;
+  return `<div class="cpan"><div class="swatches">${used.length?used.map(u=>`<button type="button" class="swatch" style="background:${u.c}" title="${esc(u.name||u.c)}" aria-label="Use ${esc(u.name||u.c)}" data-act="pickcol" data-c="${u.c}" ${d}></button>`).join(''):'<span class="hint">Colors you use in this project will show up here.</span>'}</div>
+  <div class="rgb">${num('R','cr',R)}${num('G','cg',G)}${num('B','cb',B)}<label>Hex<input class="hex" value="${hex}" maxlength="7" autocapitalize="off" autocomplete="off" spellcheck="false" data-f="chex" ${d}></label><label>Wheel<input type="color" value="${hex}" data-f="color" ${d} aria-label="Color wheel"></label></div></div>`;
+}
+function setColor(ri,hex,src){
+  const r=cur().rounds[ri];r.color=hex;const box=document.querySelector(`.step[data-r="${ri}"]`);if(!box)return;
+  const [R,G,B]=toRgb(hex),sb=box.querySelector('.sbtn');if(sb)sb.style.background=hex;
+  const set=(f,v)=>{const e=box.querySelector(`[data-f="${f}"]`);if(e&&e!==src)e.value=v};
+  set('cr',R);set('cg',G);set('cb',B);set('chex',hex);set('color',hex);save()}
+
+/* ---------- confirm dialog ---------- */
+function ask(msg,ok){return new Promise(res=>{const d=document.createElement('dialog');
+  d.innerHTML=`<p>${esc(msg)}</p><div class="row" style="justify-content:flex-end"><button type="button" data-v="0">Cancel</button><button type="button" class="pri" data-v="1">${esc(ok||'Delete')}</button></div>`;
+  d.addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b)d.close(b.dataset.v)});
+  d.addEventListener('close',()=>{res(d.returnValue==='1');d.remove()});
+  document.body.appendChild(d);d.showModal()})}
+
+/* ---------- drag steps to reorder inside a round (touch + mouse; arrow keys on the handle too) ---------- */
+let DR=null;
+const topKids=round=>[...round.children].filter(c=>c.hasAttribute('data-top'));
+document.addEventListener('pointerdown',e=>{
+  const h=e.target.closest&&e.target.closest('.grab');if(!h||(e.pointerType==='mouse'&&e.button!==0))return;
+  const box=h.closest('[data-top]'),round=h.closest('.round'),mb=h.closest('.mb');if(!box||!round||!mb)return;
+  e.preventDefault();const sibs=topKids(round),i=sibs.indexOf(box);
+  DR={h,box,round,mb,sibs,from:i,to:i,y:e.clientY,y0:e.clientY,s0:mb.scrollTop,id:e.pointerId,ri:+round.dataset.r,raf:0};
+  try{h.setPointerCapture(e.pointerId)}catch(_){}
+  box.classList.add('drag');round.style.contentVisibility='visible';document.body.classList.add('dragging');
+  DR.raf=requestAnimationFrame(dragLoop)});
+function dragUpd(){const d=DR;if(!d)return;
+  d.box.style.transform=`translateY(${d.y-d.y0+d.mb.scrollTop-d.s0}px)`;
+  const others=d.sibs.filter(s=>s!==d.box);let to=0;
+  for(const s of others){const r=s.getBoundingClientRect();if(d.y>r.top+r.height/2)to++}
+  d.to=to;others.forEach(s=>s.classList.remove('dropb','dropa'));
+  if(others.length){if(to<others.length)others[to].classList.add('dropb');else others[others.length-1].classList.add('dropa')}}
+function dragLoop(){const d=DR;if(!d)return;const r=d.mb.getBoundingClientRect(),z=70;let v=0;
+  if(d.y<r.top+z)v=-Math.ceil((r.top+z-d.y)/6);else if(d.y>r.bottom-z)v=Math.ceil((d.y-(r.bottom-z))/6);
+  if(v){d.mb.scrollTop+=v;dragUpd()}d.raf=requestAnimationFrame(dragLoop)}
+document.addEventListener('pointermove',e=>{if(!DR||e.pointerId!==DR.id)return;DR.y=e.clientY;dragUpd()});
+function dragEnd(e,cancel){const d=DR;if(!d||e.pointerId!==d.id)return;DR=null;cancelAnimationFrame(d.raf);
+  d.box.classList.remove('drag');d.box.style.transform='';d.round.style.contentVisibility='';d.sibs.forEach(s=>s.classList.remove('dropb','dropa'));document.body.classList.remove('dragging');
+  if(!cancel&&d.to!==d.from)moveItem(d.round,d.ri,d.from,d.to)}
+document.addEventListener('pointerup',e=>dragEnd(e,false));
+document.addEventListener('pointercancel',e=>dragEnd(e,true));
+function moveItem(round,ri,from,to){const p=cur(),rd=p.rounds[ri];rd.items.splice(to,0,rd.items.splice(from,1)[0]);
+  inval();round.outerHTML=roundHTML(rd,ri);refreshDerived(p,ri+1);save()}
+document.addEventListener('keydown',e=>{
+  const h=e.target.closest&&e.target.closest('.grab');if(!h||(e.key!=='ArrowUp'&&e.key!=='ArrowDown'))return;e.preventDefault();
+  const box=h.closest('[data-top]'),round=h.closest('.round'),i=topKids(round).indexOf(box),j=i+(e.key==='ArrowUp'?-1:1),ri=+round.dataset.r;
+  if(j<0||j>=topKids(round).length)return;moveItem(round,ri,i,j);
+  const nr=document.querySelector(`.round[data-r="${ri}"]`);const k=nr&&topKids(nr)[j];if(k)k.querySelector('.grab')?.focus()});
+
+/* ---------- celebration ---------- */
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const buzz=v=>{try{navigator.vibrate&&navigator.vibrate(v)}catch(e){}};
+const CC=['#b58cf0','#e0577d','#ff8aa8','#6fcf9f','#ffd166','#7ec8ff','#f9a8d4'];
+let cv=null,cx=null,PT=[],cfRaf=0,cfLast=0;
+function confetti(x,y,n,pw,aim,spr){
+  if(REDUCE)return;
+  if(!cv){cv=document.createElement('canvas');cv.className='confetti';document.body.appendChild(cv);cx=cv.getContext('2d')}
+  for(let i=0;i<n;i++){const a=(aim??-Math.PI/2)+(Math.random()-.5)*(spr??1),s=pw*(.45+Math.random()*.7);
+    PT.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,w:6+Math.random()*6,h:4+Math.random()*6,r:Math.random()*6.28,vr:(Math.random()-.5)*.4,c:CC[Math.random()*CC.length|0],l:0,life:140+Math.random()*100,dot:Math.random()<.3})}
+  if(!cfRaf){cfLast=performance.now();cfRaf=requestAnimationFrame(cfTick)}}
+function cfTick(now){
+  const k=Math.min(2.5,(now-cfLast)/16.7);cfLast=now;const d=Math.min(2,devicePixelRatio||1),W=innerWidth,H=innerHeight;
+  if(cv.width!==Math.round(W*d)||cv.height!==Math.round(H*d)){cv.width=Math.round(W*d);cv.height=Math.round(H*d)}
+  cx.setTransform(d,0,0,d,0,0);cx.clearRect(0,0,W,H);
+  PT=PT.filter(q=>{q.l+=k;q.vy+=.32*k;const f=Math.pow(.992,k);q.vx*=f;q.vy*=f;q.x+=q.vx*k;q.y+=q.vy*k;q.r+=q.vr*k;
+    if(q.l>q.life||q.y>H+30)return false;
+    cx.save();cx.globalAlpha=Math.min(1,(q.life-q.l)/30);cx.translate(q.x,q.y);cx.rotate(q.r);cx.fillStyle=q.c;
+    if(q.dot){cx.beginPath();cx.arc(0,0,q.w/2.4,0,6.28);cx.fill()}else cx.fillRect(-q.w/2,-q.h/2,q.w,q.h);cx.restore();return true});
+  if(PT.length)cfRaf=requestAnimationFrame(cfTick);else{cfRaf=0;cv.remove();cv=null}}
+function pop(el,n){const r=el.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,n,11,-Math.PI/2,2.4)}
+function durText(ms){const m=Math.round(ms/60000);if(m<1)return'';if(m<60)return m+' min';const h=Math.round(m/60);if(h<48)return h+(h===1?' hour':' hours');return Math.round(h/24)+' days'}
+const PRAISE=['Another one off the hook!','Look at what your hands made!','Every stitch counted. Beautiful work.','That is a finished project. Go show it off!'];
+function celebrate(q,st){
+  const o=document.createElement('div'),t=durText(st.ms);o.className='cele';
+  o.innerHTML=`<div class="card" role="dialog" aria-modal="true" aria-label="Project complete"><div class="ball"><svg viewBox="0 0 64 64" width="92" height="92" aria-hidden="true"><defs><linearGradient id="yg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b58cf0"/><stop offset="1" stop-color="#e0577d"/></linearGradient></defs><circle cx="30" cy="30" r="23" fill="url(#yg)"/><g fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"><path d="M10 24c11 8 29 8 40 0"/><path d="M8 33c12 9 33 9 45 0"/><path d="M14 43c10 6 25 6 35 0"/><path d="M21 9c-7 13-6 30 3 43"/><path d="M38 8c8 13 7 30-2 44"/></g><path d="M47 47c6 4 8 8 14 8" fill="none" stroke="#e0577d" stroke-width="3.5" stroke-linecap="round"/></svg></div><h2 class="serif" style="margin:8px 0 4px">Project complete!</h2><p style="margin:0 0 4px;font-weight:700">${esc(q.title||'Untitled')}</p><p class="hint" style="margin:0 0 4px">${st.n} round${st.n===1?'':'s'}${t?' &middot; started '+t+' ago':''}</p><p style="margin:0 0 18px;color:var(--mute)">${PRAISE[Math.random()*PRAISE.length|0]}</p><button class="pri" data-act="celeok">Yay!</button></div>`;
+  o.addEventListener('click',ev=>{if(ev.target===o)o.remove()});document.body.appendChild(o);o.querySelector('button').focus();
+  const w=innerWidth,h=innerHeight,pw=Math.max(12,Math.min(26,h*.03));
+  confetti(w*.08,h*.95,70,pw,-Math.PI/2+.55,.7);confetti(w*.92,h*.95,70,pw,-Math.PI/2-.55,.7);
+  setTimeout(()=>confetti(w/2,h*.9,80,pw*1.1,-Math.PI/2,1.2),350);
+  for(let i=1;i<=6;i++)setTimeout(()=>confetti(Math.random()*w,-10,18,5,Math.PI/2,1.6),700+i*260);
+  buzz([50,40,50,40,160])}
+
+/* ---------- theme buttons ---------- */
+const curTheme=()=>document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+function syncTheme(){document.querySelectorAll('[data-act=theme]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===curTheme())))}
+function setTheme(t){try{localStorage.setItem('yarnlog.theme',t)}catch(e){}applyTheme(t);syncTheme()}
+syncTheme();
+/* ---------- explorer open/close + swipe ---------- */
+const APP=document.querySelector('.app'),isMobile=()=>matchMedia('(max-width:760px)').matches;
+const setNav=open=>APP.classList.toggle('nav-closed',!open);
+let TS=null;
+document.addEventListener('touchstart',e=>{
+  const el=e.target;
+  if(e.touches.length!==1||(el.closest&&el.closest('input,textarea,select,.grab,dialog,.cele'))){TS=null;return}
+  TS={x:e.touches[0].clientX,y:e.touches[0].clientY,aside:!!(el.closest&&el.closest('aside'))}},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(!TS)return;const t=e.changedTouches[0],dx=t.clientX-TS.x,dy=t.clientY-TS.y,from=TS;TS=null;
+  if(Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*2)return;
+  const closed=APP.classList.contains('nav-closed');
+  if(dx<0&&!closed&&from.aside)setNav(false);else if(dx>0&&closed)setNav(true)},{passive:true});
+document.addEventListener('dragstart',e=>{if(e.target.tagName==='IMG')e.preventDefault()});
+document.addEventListener('selectstart',e=>{if(e.target.tagName==='IMG')e.preventDefault()});
+
 load();render();
 </script>
 <script>
