@@ -207,6 +207,16 @@ button:disabled{opacity:.35;cursor:default}
 /* drag to reorder */
 .grab{touch-action:none;cursor:grab;border:none;background:none;padding:4px 2px;color:var(--mute);font-size:16px;line-height:1;letter-spacing:-3px;min-width:26px;min-height:32px;flex:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .grab:hover{color:var(--acc)}
+.repend .pips{display:flex;margin:6px 0 4px}
+.trk.locked{opacity:.6}
+.tab{-webkit-touch-callout:none}
+.tab:not(.on){user-select:none;-webkit-user-select:none}
+.pips{display:inline-flex;gap:5px;vertical-align:middle;margin:0 6px}
+.pip{width:13px;height:13px;border-radius:50%;border:2px solid var(--acc);box-sizing:border-box}
+.pip.on{background:var(--acc)}
+.repend{margin-top:14px;border-style:dashed}
+.repend small{display:block;color:var(--mute);font-size:12.5px;margin-top:2px}
+.tabx{border:none;background:none;padding:0 0 0 6px;font-size:18px;line-height:1;color:inherit;opacity:.8}
 .lead{display:inline-flex;align-items:center;gap:6px;flex:none}
 .grab.hold{color:var(--acc);transform:scale(1.3)}
 .drag{position:relative;z-index:5;background:var(--panel);box-shadow:0 8px 22px rgba(0,0,0,.45);border-radius:10px;cursor:grabbing}
@@ -314,8 +324,8 @@ const autoT=r=>{const t=tot(r);return t?t+'sc':''};
 const totS=r=>r.manual?(r.total?r.total+'sc':''):autoT(r);
 const autoN=r=>{const t=tot(r);return t?String(t):''};
 const col=c=>/^#[0-9a-f]{3,8}$/i.test(c||'')?c:'#999999';
-const stepText=r=>r.type==='color'?'Color change: '+(r.name||r.color):r.type==='hook'?'Hook change: '+(r.size||'?'):r.kind&&r.kind!=='standard'?stepTitle(r)+(r.text?': '+r.text:''):r.text||'';
-const stepH=r=>r.type==='color'?`<span class="sw" style="background:${col(r.color)}"></span><b>Color change</b> ${esc(r.name||r.color)}`:r.type==='hook'?`<b>Hook change</b> to ${esc(r.size||'?').replace(/\d+/g,'<b>$&</b>')}`:(r.kind&&r.kind!=='standard'?`<b>${esc(stepTitle(r))}</b> `:'')+esc(r.text||'(empty note)');
+const stepText=r=>r.type==='color'?'Color change: '+(r.name||r.color):r.type==='hook'?'Hook change: '+(r.size||'?'):r.kind==='repeat'?'Repeat this part '+(r.times||2)+' times'+(r.text?': '+r.text:''):r.kind&&r.kind!=='standard'?stepTitle(r)+(r.text?': '+r.text:''):r.text||'';
+const stepH=r=>r.type==='color'?`<span class="sw" style="background:${col(r.color)}"></span><b>Color change</b> ${esc(r.name||r.color)}`:r.type==='hook'?`<b>Hook change</b> to ${esc(r.size||'?').replace(/\d+/g,'<b>$&</b>')}`:r.kind==='repeat'?repH(r):(r.kind&&r.kind!=='standard'?`<b>${esc(stepTitle(r))}</b> `:'')+esc(r.text||'(empty note)');
 const bodyH=r=>r.step?stepH(r):frH(r);
 const fr=r=>{if(r.step)return stepText(r);const j=jmode(r)==='joined',body=[j&&!r.noPre?'1 '+T.ch[1]:'',fmtItems(r.items,rngs(r),0,r.items.length-1,true),j&&!r.noPost?'1 '+T.sl[1]:''].filter(Boolean).join(', ');let s=r.label+' '+body;const t=totS(r);if(t)s+=` (${t})`;if(r.note)s+=`, ${r.note}`;return s.trim()};
 const frH=r=>fr(r).split(/(\d+)/).map((x,i)=>i%2?`<b>${esc(x)}</b>`:esc(x)).join('');
@@ -323,7 +333,7 @@ const PH='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org
 const allIt=it=>it.group?it.group.flatMap(allIt):[it];
 const roundHas=(r,q)=>!r.step&&r.items.flatMap(allIt).some(i=>T[i.t]&&(T[i.t].join(' ')+' '+i.t).toLowerCase().includes(q));
 const match=(p,q)=>!q||(p.title||'untitled').toLowerCase().includes(q)||p.rounds.some(r=>roundHas(r,q));
-const prog=p=>{const rs=p.rounds.filter(r=>!r.step),n=rs.length,d=rs.filter(r=>p.build.done[r.id]).length;return{n,d,pct:n?Math.round(d/n*100):0}};
+const prog=p=>{let n=0,d=0;for(const r of p.rounds){if(r.step)continue;const nd=repNode(p,r.tab),w=nd?Math.max(1,nd.times||2):1,c=nd?repCount(p,nd):0,tk=p.build.done[r.id]?1:0;n+=w;d+=nd?c+(c<w?tk:0):tk}return{n,d,pct:n?Math.round(d/n*100):0}};
 
 function renderList(){
   const q=S.q.trim().toLowerCase(),L=S.projects.filter(p=>match(p,q));
@@ -343,7 +353,7 @@ const insBar=at=>`<div class="ins"><button data-act="addstep" data-type="color" 
 function stepHTML(r,ri){
   const body=r.type==='color'?`<div class="row"><button type="button" class="sbtn" style="background:${col(r.color)}" data-act="cp" data-r="${ri}" aria-label="Choose color" aria-expanded="${S.cp===r.id}"></button><input style="flex:1" placeholder="Color name (optional)" value="${esc(r.name)}" data-f="name" data-r="${ri}"></div>${S.cp===r.id?cpHTML(r,ri):''}`
    :r.type==='hook'?`<div class="row"><input placeholder="Hook size, e.g. 3.5 mm" value="${esc(r.size)}" data-f="size" data-r="${ri}" style="font-weight:800"></div>`
-   :`${techUI(r,ri)}<textarea rows="3" placeholder="Explain the next step in more detail..." data-f="text" data-r="${ri}">${esc(r.text)}</textarea>`;
+   :`${techUI(r,ri)}${repUI(r,ri)}<textarea rows="3" placeholder="Explain the next step in more detail..." data-f="text" data-r="${ri}">${esc(r.text)}</textarea>`;
   return `<div class="round step" data-r="${ri}"><div class="top"><b>${stepTitle(r,true)}</b><button class="ghost" data-act="up" data-r="${ri}" aria-label="Move up">&uarr;</button><button class="ghost" data-act="dn" data-r="${ri}" aria-label="Move down">&darr;</button><button class="ghost dng" data-act="delround" data-r="${ri}">Delete</button></div>${body}</div>`;
 }
 // step number + repeat tags shown in front of each step
@@ -374,7 +384,7 @@ function renderMain0(){
     const pr=prog(p);
     m.innerHTML=`<div class="mh"><div class="row" style="justify-content:space-between"><h2 class="serif" style="margin:0">${esc(p.title||'Untitled')}</h2><div class="row"><button data-act="edit">Edit pattern</button><button class="pri ${pr.n&&pr.d===pr.n?'glow':''}" id="cbtn" data-act="complete" data-id="${p.id}">${pr.n&&pr.d===pr.n?'Complete project':'Close project'}</button></div></div>
     <p id="pgt">${pgText(pr)}</p><div class="bar bar-lg"><i id="pgb" style="width:${pr.pct}%"></i></div>${p.tabs.length?tabBar(p,ta,'track'):''}</div><div class="mb">
-    ${p.rounds.map((r,ri)=>(p.tabs.length&&r.tab!==ta)?'':r.step?`<div class="info ${r.type==='hook'?'hook':''}"><span class="star">${r.type==='hook'?IC.hook:r.type==='note'&&r.kind&&r.kind!=='standard'?noteIcon(r):'*'}</span><div class="prev sp">${stepH(r)}</div></div>`:`<label class="trk ${p.build.done[r.id]?'done':''}"><input type="checkbox" data-act="tick" data-r="${ri}" ${p.build.done[r.id]?'checked':''}><div class="prev">${frH(r)}</div></label>`).join('')||'<p>This pattern has no rounds yet.</p>'}
+    ${p.rounds.map((r,ri)=>(p.tabs.length&&r.tab!==ta)?'':r.step?`<div class="info ${r.type==='hook'?'hook':''}"><span class="star">${r.type==='hook'?IC.hook:r.type==='note'&&r.kind&&r.kind!=='standard'?noteIcon(r):'*'}</span><div class="prev sp">${stepH(r)}</div></div>`:`<label class="trk ${p.build.done[r.id]?'done':''}"><input type="checkbox" data-act="tick" data-r="${ri}" ${p.build.done[r.id]?'checked':''}><div class="prev">${frH(r)}</div></label>`).join('')||'<p>This pattern has no rounds yet.</p>'}${repEnd(p,ta)}
     <details style="color:var(--mute);margin-top:16px"><summary style="cursor:pointer">Abbreviations</summary><div class="abbr">${Object.values(T).map(v=>`<div><b>${esc(v[1])}</b><span>${esc(v[0])}</span></div>`).join('')}</div></details></div>`;
     return;
   }
@@ -382,7 +392,7 @@ function renderMain0(){
   <div style="flex:1;min-width:200px"><input class="title" value="${esc(p.title)}" placeholder="Project title" data-f="title">
   <div class="row" style="margin-top:10px"><button class="pri" data-act="${p.build?'track':'build'}" data-id="${p.id}">${p.build?'Continue building':'Build this pattern'}</button>${p.image?'<button data-act="delimg">Remove photo</button>':''}<button class="dng" data-act="delp" data-id="${p.id}">Delete project</button></div></div></div></div>
   <div class="mb"><input type="file" id="imgin" accept="image/*" hidden>
-  <div class="pt"><div class="pth"><h2 class="serif">Pattern</h2><button class="ghost sub" data-act="tabson" title="${p.tabs.length?'Merge the tabs back into one list':'Split this pattern into parts, e.g. body, arms, head'}">${p.tabs.length?'Turn off tabs':'&#9638; Use tabs'}</button></div>${p.tabs.length?tabBar(p,ta,'edit'):''}</div>${p.tabs.length>1?tabTools(p,ta):''}
+  <div class="pt"><div class="pth"><h2 class="serif">Pattern</h2><button class="ghost sub" data-act="tabson" title="${p.tabs.length?'Merge the tabs back into one list':'Split this pattern into parts, e.g. body, arms, head'}">${p.tabs.length?'Turn off tabs':'&#9638; Use tabs'}</button></div>${p.tabs.length?tabBar(p,ta,'edit'):''}</div>${p.tabs.length?tabTools(p,ta):''}
   ${p.rounds.map((r,i)=>(p.tabs.length&&r.tab!==ta)?'':insBar(i)+roundHTML(r,i)).join('')+insBar(p.rounds.length)}
   <button class="pri" data-act="addround">+ Add round</button></div>`;
 }
@@ -409,6 +419,7 @@ document.addEventListener('input',e=>{
     else{if(el.value==='')return;const c=toRgb(r.color);c['rgb'.indexOf(f[1])]=Math.max(0,Math.min(255,Math.round(+el.value)||0));hex='#'+c.map(hex2).join('')}
     setColor(ri,hex,el);return}
   const row=el.closest('.it'),ri=+(row||el).dataset.r,rr=p.rounds[ri];
+  if(f==='times'){rr.times=Math.max(1,Math.min(99,parseInt(el.value)||1));save();return}
   if(f==='mode'){const old=rr.mode;if(rr.text===noteText({kind:'tech',mode:old}))rr.text=noteText({kind:'tech',mode:el.value});rr.mode=el.value;save();renderMain();return}
   if(f==='manual'){rr.manual=el.checked;if(rr.manual&&!rr.total)rr.total=autoN(rr);save();renderMain();return}
   const RK={rfrom:'from',rto:'to',rn:'n'};
@@ -426,16 +437,27 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const el=e.target;if(el.id==='imgin'&&el.files[0])return setImg(el.files[0]);
   if(el.dataset.f==='tabname'){const p=cur(),t=p&&p.tabs.find(x=>x.id===el.dataset.t);if(t&&!t.name.trim()){t.name='Part '+(p.tabs.indexOf(t)+1);el.value=t.name;renderList();save()}return}
+  if(el.dataset.f==='times'){const p=cur(),r=p&&p.rounds[+el.dataset.r];if(r)el.value=r.times||2;return}
   if(/^(c[rgb]|chex)$/.test(el.dataset.f||'')){const p=cur(),r=p&&p.rounds[+el.dataset.r];if(r){const c=toRgb(r.color);el.value=el.dataset.f==='chex'?'#'+c.map(hex2).join(''):c['rgb'.indexOf(el.dataset.f[1])]}return}
   if(el.id==='imp'&&el.files[0])return importFile(el.files[0]);
+  if(el.dataset.act==='repdone'){const p=cur(),n=p&&p.rounds.find(x=>x.id===el.dataset.n);if(!n||!p.build)return;
+    const b=p.build;b.rep=b.rep||{};const t=n.times||2,c=repCount(p,n);let reset=false;if(el.checked&&c<t&&!partDone(p,n.tab)){el.checked=false;return}
+    if(el.checked){if(c+1>=t)b.rep[n.id]=t;else{b.rep[n.id]=c+1;p.rounds.forEach(x=>{if(!x.step&&(x.tab||null)===(n.tab||null))delete b.done[x.id]});reset=true}}
+    else if(c>=t)b.rep[n.id]=t-1;
+    if(reset)$('#main').dataset.k='';   // next pass: start again from the top of the part
+    save();renderMain();renderList();
+    if(el.checked){buzz(30);const pr=prog(p),e=document.querySelector('.repend input');if(e)pop(e,pr.n&&pr.d===pr.n?70:30)}
+    return}
   if(el.dataset.act==='tick'){const p=cur(),r=p.rounds[+el.dataset.r];p.build.done[r.id]=el.checked;el.closest('.trk').classList.toggle('done',el.checked);const pr=prog(p),fin=pr.n>0&&pr.d===pr.n;
     $('#pgt').textContent=pgText(pr);$('#pgb').style.width=pr.pct+'%';const cb=$('#cbtn');if(cb){cb.classList.toggle('glow',fin);cb.textContent=fin?'Complete project':'Close project'}
     if(p.tabs.length){const tb=document.querySelector('#main .tabs');if(tb)tb.outerHTML=tabBar(p,tabOf(p),'track')}
+    const rb=document.querySelector('.repbox');if(rb)rb.outerHTML=repEnd(p,p.tabs.length?tabOf(p):null);
     if(el.checked){if(fin){pop(el,70);buzz([40,30,80])}else if(p.tabs.length&&r.tab){const x=tprog(p,r.tab);if(x.n&&x.d===x.n){pop(el,28);buzz(30)}}}
     save();renderList()}
 });
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-act]');if(!el||el.tagName==='INPUT')return;
+  if(Date.now()-lpAt<700&&el.closest('.tabs'))return;   // the tap that ends a long-press
   const a=el.dataset.act,p=cur(),id=el.dataset.id,r=el.dataset.r;
   if(a==='newp'){const n={id:uid(),title:'',image:'',rounds:[],tabs:[],build:null};S.projects.unshift(n);S.sel=n.id;S.view='edit';if(isMobile())setNav(false);save();render();document.querySelector('.title')?.focus();return}
   if(a==='sel'){S.sel=id;S.view='edit';S.confirm=null;if(isMobile())setNav(false);render();return}
@@ -459,9 +481,9 @@ document.addEventListener('click',e=>{
   else if(a==='img'){$('#imgin').click();return}
   else if(a==='delimg'){ask('Remove this photo from the project?','Remove').then(ok=>{if(ok){p.image='';dirtyImg.add(p.id);save();render()}});return}
   else if(a==='notemenu'||a==='techmenu'){const at=+el.dataset.at,tb=p.tabs.length?tabOf(p):null;
-    pickNote(a==='techmenu').then(c=>{if(!c)return;p.rounds.splice(Math.min(at,p.rounds.length),0,{id:uid(),step:1,type:'note',kind:c.kind,mode:c.mode,color:'#e0577d',name:'',size:'',text:noteText(c),...(tb?{tab:tb}:{})});save();render()});return}
+    pickNote(a==='techmenu',a==='notemenu'&&!!repNode(p,tb)).then(c=>{if(!c)return;p.rounds.splice(Math.min(at,p.rounds.length),0,{id:uid(),step:1,type:'note',kind:c.kind,mode:c.mode,color:'#e0577d',name:'',size:'',text:noteText(c),...(c.kind==='repeat'?{times:2}:{}),...(tb?{tab:tb}:{})});save();render()});return}
   else if(a==='addstep')p.rounds.splice(+el.dataset.at,0,{id:uid(),step:1,type:el.dataset.type,color:'#e0577d',name:'',size:'',text:'',...(p.tabs.length?{tab:tabOf(p)}:{})});
-  else if(a==='addround'){const tb=p.tabs.length?tabOf(p):null;p.rounds.push({id:uid(),label:'R'+nextNum(p,tb),items:[{n:1,t:'ch'}],reps:[],total:'',manual:false,note:'',...(tb?{tab:tb}:{})})}
+  else if(a==='addround'){const tb=p.tabs.length?tabOf(p):null;p.rounds.push({id:uid(),label:'R'+nextNum(p,tb),items:[{n:1,t:'sc'}],reps:[],total:'',manual:false,note:'',...(tb?{tab:tb}:{})})}
   else if(a==='delround'){const rd=p.rounds[+r],cut=x=>x.length>140?x.slice(0,137)+'...':x;
     const msg=rd.step?`Delete this step?\n${cut(stepText(rd)||'(empty note)')}`:`Delete round ${rd.label}?\n${cut(fr(rd).slice(String(rd.label).length).trim()||'(no stitches)')}`;
     ask(msg,'Delete').then(ok=>{if(!ok)return;const i=p.rounds.indexOf(rd);if(i>=0)p.rounds.splice(i,1);save();render()});return}
@@ -475,12 +497,12 @@ document.addEventListener('click',e=>{
   else if(a==='tabadd'){const t={id:uid(),name:'Part '+(p.tabs.length+1)};p.tabs.push(t);S.tab[p.id]=t.id}
   else if(a==='tabsel')S.tab[p.id]=el.dataset.t;
   else if(a==='tabl'||a==='tabr'){const i=p.tabs.findIndex(t=>t.id===tabOf(p)),j=i+(a==='tabl'?-1:1);if(j>=0&&j<p.tabs.length){const t=p.tabs[i];p.tabs[i]=p.tabs[j];p.tabs[j]=t}}
-  else if(a==='tabdel'){const tid=tabOf(p),t=p.tabs.find(x=>x.id===tid),n=p.rounds.filter(x=>x.tab===tid).length;
-    const go=()=>{p.rounds.filter(x=>x.tab===tid).forEach(x=>{if(p.build)delete p.build.done[x.id]});p.rounds=p.rounds.filter(x=>x.tab!==tid);p.tabs=p.tabs.filter(x=>x.id!==tid);delete S.tab[p.id];save();render()};
-    if(n)ask(`Delete "${t.name}" and its ${n} item${n>1?'s':''}?`).then(ok=>{if(ok)go()});else go();return}
-  else if(a==='additem')p.rounds[+r].items.push({n:1,t:'ch'});
-  else if(a==='addgroup')p.rounds[+r].items.push({group:[{n:1,t:'ch'}]});
-  else if(a==='addchild')p.rounds[+r].items[+el.dataset.i].group.push({n:1,t:'ch'});
+  else if(a==='tabdel'){delTab(p,tabOf(p));return}
+  else if(a==='represet'){const n=p.rounds.find(x=>x.id===el.dataset.n);if(!n||!p.build)return;
+    ask('Reset the repetitions?\nThe count goes back to 0 and every tick in this part is cleared.','Reset').then(ok=>{if(!ok)return;const b=p.build;b.rep=b.rep||{};b.rep[n.id]=0;p.rounds.forEach(x=>{if(!x.step&&(x.tab||null)===(n.tab||null))delete b.done[x.id]});$('#main').dataset.k='';save();renderMain();renderList()});return}
+  else if(a==='additem')p.rounds[+r].items.push({n:1,t:'sc'});
+  else if(a==='addgroup')p.rounds[+r].items.push({group:[{n:1,t:'dc'}]});
+  else if(a==='addchild')p.rounds[+r].items[+el.dataset.i].group.push({n:1,t:'sc'});
   else if(a==='addrep'){const rd=p.rounds[+r];rd.reps.push({from:1,to:rd.items.length||1,n:2})}
   else if(a==='delrep')p.rounds[+r].reps.splice(+el.dataset.k,1);
   else if(a==='delitem'){const rd=p.rounds[+r],i=+el.dataset.i,it=rd.items[i];
@@ -522,6 +544,7 @@ const IC={
   fill:svg('0 0 48 48','<path d="M11 18C9 32 15 43 24 43s15-11 13-25"/><ellipse cx="24" cy="18" rx="13" ry="4.5"/><g stroke-width="1.6"><path d="M14 24l2 3 2-3M19 24l2 3 2-3M24 24l2 3 2-3M29 24l2 3 2-3"/><path d="M16.5 30l2 3 2-3M21.5 30l2 3 2-3M26.5 30l2 3 2-3"/><path d="M19 36l2 3 2-3M24 36l2 3 2-3"/></g><path d="M14 17C9 10 16 5 21 9C22 3 31 3 31 9C36 6 41 13 34 17Z" style="fill:var(--panel)"/>'),
   spiral:svg('0 0 24 24','<path d="M12 12a1.5 1.5 0 0 1 1.5 1.5 3 3 0 0 1-3 3 4.5 4.5 0 0 1-4.5-4.5 6 6 0 0 1 6-6 7.5 7.5 0 0 1 7.5 7.5"/>'),
   link:svg('0 0 24 24','<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'),
+  repeat:svg('0 0 24 24','<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>'),
   rows:svg('0 0 24 24','<path d="M4 8h16M16 4l4 4-4 4M20 17H4M8 13l-4 4 4 4"/>'),
   note:svg('0 0 24 24','<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>'),
   scissors:svg('0 0 24 24','<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1 20 20M20 4 8.1 15.9"/>'),
@@ -534,6 +557,7 @@ IC.fill=IC.fill.replace('class="ico"','class="ico big"');
 const NOTE_KINDS=[
   {k:'standard',icon:IC.note,t:'Standard note',d:'Write any instruction in your own words.'},
   {k:'fill',icon:IC.fill,t:'Polyester fill',d:'Stuff the piece with polyester fiberfill (amigurumi).'},
+  {k:'repeat',icon:IC.repeat,t:'Repetition',d:'Repeat this whole part several times; tick off each pass.'},
   {k:'fasten',icon:IC.scissors,t:'Fasten off',d:'Cut the yarn and leave a tail for sewing.'}];
 // shown in the "Technique" list
 const TECHS=[
@@ -557,12 +581,12 @@ function autoRow(r,ri,w){
   if(jmode(r)!=='joined')return'';
   const pre=w==='pre',off=pre?r.noPre:r.noPost;
   return `<label class="auto ${off?'off':''}" title="Added automatically in joined rounds and not counted in the total. Untick to switch it off for this round."><input type="checkbox" data-f="${pre?'autopre':'autopost'}" data-r="${ri}" ${off?'':'checked'}><span class="ab">auto</span><b>1 ${T[pre?'ch':'sl'][1]}</b><span class="ad">${pre?'start of round':'end of round'}</span></label>`}
-function pickNote(tech){return new Promise(res=>{
+function pickNote(tech,noRep){return new Promise(res=>{
   const d=document.createElement('dialog');d.className='nm';let out=null;
   const opt=(ic,t,desc,at)=>`<button type="button" class="nopt" ${at}><span class="ni">${ic}</span><span><b>${t}</b><small>${desc}</small></span></button>`;
   d.innerHTML=tech
     ?`<h3 class="serif" style="margin:0 0 4px">Technique</h3><p class="hint" style="margin:0 0 10px">Applies to the rounds below it, until the next technique.</p>`+TECHS.map(t=>opt(t.icon,t.t,t.d,`data-m="${t.m}"`)).join('')+`<div class="row" style="justify-content:flex-end"><button type="button" data-k="cancel">Cancel</button></div>`
-    :`<h3 class="serif" style="margin:0 0 10px">Add a note</h3>`+NOTE_KINDS.map(k=>opt(k.icon,k.t,k.d,`data-k="${k.k}"`)).join('')+`<div class="row" style="justify-content:flex-end"><button type="button" data-k="cancel">Cancel</button></div>`;
+    :`<h3 class="serif" style="margin:0 0 10px">Add a note</h3>`+NOTE_KINDS.map(k=>k.k==='repeat'&&noRep?opt(k.icon,k.t,'This part already has a repetition.','disabled'):opt(k.icon,k.t,k.d,`data-k="${k.k}"`)).join('')+`<div class="row" style="justify-content:flex-end"><button type="button" data-k="cancel">Cancel</button></div>`;
   d.addEventListener('click',e=>{
     if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();return}   // tap outside = close
     const b=e.target.closest('[data-k],[data-m]');if(!b)return;const k=b.dataset.k,m=b.dataset.m;
@@ -572,8 +596,43 @@ function pickNote(tech){return new Promise(res=>{
   document.body.appendChild(d);d.showModal()})}
 
 /* ---------- tabs ---------- */
+let lpAt=0;
+function delTab(p,tid){const t=p.tabs.find(x=>x.id===tid);if(!t)return;
+  const n=p.rounds.filter(x=>x.tab===tid).length,last=p.tabs.length===1;
+  const go=()=>{p.rounds.filter(x=>x.tab===tid).forEach(x=>{if(p.build)delete p.build.done[x.id]});p.rounds=p.rounds.filter(x=>x.tab!==tid);p.tabs=p.tabs.filter(x=>x.id!==tid);delete S.tab[p.id];save();render()};
+  if(n||last)ask(`Delete "${t.name}"${n?` and its ${n} item${n>1?'s':''}`:''}?${last?'\nThis is the last tab, so tabs will be turned off.':''}`,'Delete').then(ok=>{if(ok)go()});else go()}
+function tabMenu(p,tid){const t=p.tabs.find(x=>x.id===tid);if(!t)return;const i=p.tabs.indexOf(t),d=document.createElement('dialog'),born=Date.now();d.className='nm';
+  const opt=(ic,tt,at)=>`<button type="button" class="nopt" ${at}><span class="ni">${ic}</span><span><b>${tt}</b></span></button>`;
+  d.innerHTML=`<h3 class="serif" style="margin:0 0 10px">${esc(t.name)||'Untitled'}</h3>`+opt('&larr;','Move left',i<1?'disabled':'data-a="l"')+opt('&rarr;','Move right',i>=p.tabs.length-1?'disabled':'data-a="r"')+opt('&times;','Delete tab','data-a="d"')+`<div class="row" style="justify-content:flex-end"><button type="button" data-a="x">Cancel</button></div>`;
+  d.addEventListener('click',e=>{if(Date.now()-born<400)return;
+    if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();return}
+    const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;d.close();
+    if(a==='l'||a==='r'){const j=i+(a==='l'?-1:1);if(j>=0&&j<p.tabs.length){const x=p.tabs[i];p.tabs[i]=p.tabs[j];p.tabs[j]=x;save();render()}}
+    else if(a==='d')delTab(p,tid)});
+  d.addEventListener('close',()=>d.remove());document.body.appendChild(d);d.showModal()}
+// hold a tab (in the editor) to open its menu
+let LP=null;
+document.addEventListener('pointerdown',e=>{const tb=e.target.closest&&e.target.closest('.pt .tabs .tab:not(.add)');if(!tb)return;
+  const h=tb.dataset.t?tb:tb.querySelector('[data-t]'),tid=h&&h.dataset.t;if(!tid)return;
+  LP={id:e.pointerId,x:e.clientX,y:e.clientY,timer:setTimeout(()=>{LP=null;lpAt=Date.now();buzz(15);const p=cur();if(!p)return;if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();tabMenu(p,tid)},450)}});
+document.addEventListener('pointermove',e=>{if(LP&&e.pointerId===LP.id&&Math.hypot(e.clientX-LP.x,e.clientY-LP.y)>10){clearTimeout(LP.timer);LP=null}});
+['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,()=>{if(LP){clearTimeout(LP.timer);LP=null}}));
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('.pt .tab'))e.preventDefault()});
 const tabOf=p=>p.tabs.length?(p.tabs.some(t=>t.id===S.tab[p.id])?S.tab[p.id]:p.tabs[0].id):null;
-const tprog=(p,id)=>{const rs=p.rounds.filter(r=>!r.step&&r.tab===id);return{n:rs.length,d:rs.filter(r=>p.build&&p.build.done[r.id]).length}};
+// a part with a Repetition counts every pass: rounds x times
+const repNode=(p,tab)=>p.rounds.find(x=>x.step&&x.type==='note'&&x.kind==='repeat'&&(x.tab||null)===(tab||null));
+const repCount=(p,n)=>Math.min(((p.build&&p.build.rep)||{})[n.id]||0,n.times||2);
+const tprog=(p,id)=>{const nd=repNode(p,id),w=nd?Math.max(1,nd.times||2):1,c=nd?repCount(p,nd):0;let n=0,d=0;for(const r of p.rounds){if(r.step||r.tab!==id)continue;const tk=p.build&&p.build.done[r.id]?1:0;n+=w;d+=nd?c+(c<w?tk:0):tk}return{n,d}};
+const repUI=(r,ri)=>r.kind!=='repeat'?'':`<div class="row"><label>Repeat this part <input type="number" min="1" max="99" inputmode="numeric" value="${r.times||2}" data-f="times" data-r="${ri}" style="width:64px;font-weight:800"> times</label></div><div class="hint" style="margin:6px 0 8px">In the building view a checkbox appears at the end of this part. Ticking it counts one repetition and clears the ticks of this part so you can go again.</div>`;
+const pipsHTML=(c,n)=>n<=12?`<span class="pips" aria-label="${c} of ${n} done">${Array.from({length:n},(_,i)=>`<i class="pip ${i<c?'on':''}"></i>`).join('')}</span>`:`<span>${c}/${n}</span> `;
+const partRounds=(p,tab)=>p.rounds.filter(x=>!x.step&&(x.tab||null)===(tab||null));
+const partDone=(p,tab)=>partRounds(p,tab).every(x=>p.build.done[x.id]);
+const repH=r=>{const p=cur(),c=repCount(p,r),n=r.times||2;
+  return `<b>Repeat ${n} time${n>1?'s':''}</b> ${pipsHTML(c,n)}<span class="hint">${c>=n?'all done':'pass '+(c+1)+' of '+n}</span>`};
+// a pass can only be finished when every round of the part is ticked
+const repEnd=(p,tab)=>{const n=repNode(p,tab);if(!n)return'';const c=repCount(p,n),t=n.times||2,fin=c>=t,ready=fin||partDone(p,tab),any=partRounds(p,tab).some(x=>p.build.done[x.id]);
+  const sub=fin?'Untick to go back one repetition.':!ready?'Tick every round above to finish this pass.':'Repetition '+(c+1)+' of '+t+(c+1<t?' - ticking clears this part for the next pass.':'');
+  return `<div class="repbox"><label class="trk repend ${fin?'done':''} ${ready?'':'locked'}"><input type="checkbox" data-act="repdone" data-n="${n.id}" ${fin?'checked':''} ${ready?'':'disabled'}><div class="prev"><b>${fin?'All '+t+' repetitions done':'Finished this pass'}</b>${pipsHTML(c,t)}<small>${sub}</small></div></label><div class="row" style="justify-content:flex-end"><button type="button" class="ghost sub" data-act="represet" data-n="${n.id}" ${c||any?'':'disabled'}>&#8635; Reset repetitions</button></div></div>`};
 const pgText=pr=>pr.n&&pr.d===pr.n?`All ${pr.n} rounds done! \u{1F389}`:`${pr.d} of ${pr.n} rounds done`;
 function tabBar(p,ta,mode){
   const q=S.q.trim().toLowerCase();
